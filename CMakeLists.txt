@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(LOCAL_H /opt/homebrew/include)
 include_directories(${LOCAL_H})
 
+include_directories(./ ./include) # 需要加载我的库
+
 set(GLEW_H /opt/homebrew/Cellar/glew/2.2.0_1/include/GL)
 set(GLFW_H /opt/homebrew/Cellar/glfw/3.3.7/include/GLFW)
 link_directories(${GLEW_H} ${GLFW_H})

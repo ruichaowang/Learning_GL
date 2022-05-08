@@ -1,5 +1,6 @@
 # Learning_GL
 
+- 相对地址总是有问题,
 
 ## 代码资源
 - [学习 shaders ](https://learnopengl-cn.github.io/01%20Getting%20started/05%20Shaders/)
