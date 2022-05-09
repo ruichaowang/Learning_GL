@@ -1,11 +1,12 @@
 # Learning_GL
 
+- 变化的顺序会影响结果,但是我不是特别理解
 - 相对地址总是有问题,用绝对地址就不会出问题
-
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
 
 ## 代码资源
 
+- [Transformations](https://learnopengl-cn.github.io/01%20Getting%20started/06%20Textures/)
 - [纹理](https://learnopengl-cn.github.io/01%20Getting%20started/06%20Textures/)
 - [学习 shaders ](https://learnopengl-cn.github.io/01%20Getting%20started/05%20Shaders/)
 - [第二章的 EBO 源代码](https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp)
