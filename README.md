@@ -1,6 +1,6 @@
 # Learning_GL
 
-- 变化的顺序会影响结果,但是我不是特别理解
+-  m1 版本不能转动 不知道原因为何
 - 相对地址总是有问题,用绝对地址就不会出问题
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
 
