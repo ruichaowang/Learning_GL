@@ -18,8 +18,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -78,8 +78,16 @@ int main()
 
     // build and compile our shader zprogram
     // ------------------------------------
-    Shader lightingShader("/Users/ruichaowang/Work/Learning_GL/shaders/colors.vs", "/Users/ruichaowang/Work/Learning_GL/shaders/colors.fs");
-    Shader lightCubeShader("/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.vs", "/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.fs");
+    // 这是 m1 mac 所需要的路径
+    Shader lightingShader("/Users/wangruichao/Work/OpenGL_learning/shaders/colors.vs",
+         "/Users/wangruichao/Work/OpenGL_learning/shaders/colors.fs");
+    Shader lightCubeShader("/Users/wangruichao/Work/OpenGL_learning/shaders/light_cube.vs",
+         "/Users/wangruichao/Work/OpenGL_learning/shaders/light_cube.fs");
+    // 这是 x86 mac 所需要的路径
+    // Shader lightingShader("/Users/ruichaowang/Work/Learning_GL/shaders/colors.vs",
+    //      "/Users/ruichaowang/Work/Learning_GL/shaders/colors.fs");
+    // Shader lightCubeShader("/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.vs",
+    //      "/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
