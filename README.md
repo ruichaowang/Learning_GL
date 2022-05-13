@@ -1,7 +1,7 @@
 # Learning_GL
 
 - view lookat 函数暂时没有深度研究，
-- m1 和 x86 的应该都可以运行
+- m1 和 x86 的 mac 都可以运行
 - 相对地址总是有问题,用绝对地址就不会出问题
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
 
@@ -16,3 +16,12 @@
 - [第二章说明](https://learnopengl-cn.github.io/01%20Getting%20started/04%20Hello%20Triangle/)
 - [第一章说明](https://learnopengl-cn.github.io/01%20Getting%20started/03%20Hello%20Window/)
 - [第一章源代码](https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/1.2.hello_window_clear/hello_window_clear.cpp)
+
+## github 登录不上
+- https://juejin.cn/post/6844904193170341896
+```
+sudo gedit /etc/hosts
+140.82.113.4 github.com
+sudo killall -HUP mDNSResponder;say DNS cache has been flushed
+ping www.github.com
+```
