@@ -1,11 +1,12 @@
 # Learning_GL
 
--  m1 版本不能转动 不知道原因为何
+- view lookat 函数暂时没有深度研究，
+- m1 和 x86 的应该都可以运行
 - 相对地址总是有问题,用绝对地址就不会出问题
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
 
 ## 代码资源
-
+- [Camera](https://learnopengl-cn.github.io/01%20Getting%20started/09%20Camera/#_9)
 - [Coordinate Systems](https://learnopengl-cn.github.io/01%20Getting%20started/08%20Coordinate%20Systems/)
 - [Transformations](https://learnopengl-cn.github.io/01%20Getting%20started/06%20Textures/)
 - [纹理](https://learnopengl-cn.github.io/01%20Getting%20started/06%20Textures/)
