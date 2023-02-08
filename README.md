@@ -1,9 +1,10 @@
 # Learning_GL
-简单的 opengl 环境依赖 demo， 里面应该运行后是一个可以跟随鼠标运动的箱子贴图
+- 简单的 opengl 环境依赖 demo， 里面应该运行后是一个可以跟随鼠标运动的箱子贴图
+- 当前环境是直接依赖于mac 里的glfw环境，所以有依赖问题，
+- 安装 brew install glfw ，如果版本不对记得在 cmakelist 里修改 版本（也许是版本不一致）
+- 当前有一儿很严重的兼容性问题是 相对地址总是有问题,用绝对地址就不会出问题， 也就是说如果换了电脑就必须更换路径
 
-## 使用方法
-- 安装 glfw ，
-
+## 编译方法
 ```
 mkdir -p build
 cmake ..
@@ -13,7 +14,7 @@ make
 
 ## 其他
 - m1 和 x86 的 mac 都可以运行
-- 相对地址总是有问题,用绝对地址就不会出问题
+-
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
 - 找不到 glad.h 文件
 

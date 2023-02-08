@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(LOCAL_H /opt/homebrew/include)   # 加载系统库
 include_directories(${LOCAL_H})
 
-include_directories(./ ./include ./shaders ./include/glad ./include/KHR) # 需要加载的库
+include_directories(./ ./include ./shaders ./include/glad ./include/KHR ./include/glm) # 需要加载的库
 
 # x86mac 用上面的， m1用下面的
 # set(GLEW_H /usr/local/Cellar/glew/2.2.0_1/include/GL)
