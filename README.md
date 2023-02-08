@@ -2,6 +2,8 @@
 简单的 opengl 环境依赖 demo， 里面应该运行后是一个可以跟随鼠标运动的箱子贴图
 
 ## 使用方法
+- 安装 glfw ，
+
 ```
 mkdir -p build
 cmake ..
@@ -10,11 +12,10 @@ make
 ```
 
 ## 其他
-- 在观察空间（而不是世界空间）中计算冯氏光照：参考解答 这个问题我不是特别理解
-- view lookat 函数暂时没有深度研究，
 - m1 和 x86 的 mac 都可以运行
 - 相对地址总是有问题,用绝对地址就不会出问题
 - [解决 mac 不能加载 stb image](https://github.com/Polytonic/Glitter/issues/70)
+- 找不到 glad.h 文件
 
 ## 代码资源
 - [Camera](https://learnopengl-cn.github.io/01%20Getting%20started/09%20Camera/#_9)
@@ -36,3 +37,6 @@ sudo gedit /etc/hosts
 sudo killall -HUP mDNSResponder;say DNS cache has been flushed
 ping www.github.com
 ```
+
+### 下载 glad
+C++ opengl4.6 core  https://glad.dav1d.de/
