@@ -1,5 +1,15 @@
 # Learning_GL
+简单的 opengl 环境依赖 demo， 里面应该运行后是一个可以跟随鼠标运动的箱子贴图
 
+## 使用方法
+```
+mkdir -p build
+cmake ..
+make
+./OpenGL
+```
+
+## 其他
 - 在观察空间（而不是世界空间）中计算冯氏光照：参考解答 这个问题我不是特别理解
 - view lookat 函数暂时没有深度研究，
 - m1 和 x86 的 mac 都可以运行
