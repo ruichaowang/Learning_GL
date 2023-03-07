@@ -29,7 +29,7 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
-float deltaTime = 0.0f;	
+float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
@@ -80,16 +80,10 @@ int main()
     // build and compile our shader zprogram
     // ------------------------------------
     // 这是 m1 mac 所需要的路径
-    Shader lightingShader("/Users/wangruichao/Work/OpenGL_learning/shaders/colors.vs",
-         "/Users/wangruichao/Work/OpenGL_learning/shaders/colors.fs");
-    Shader lightCubeShader("/Users/wangruichao/Work/OpenGL_learning/shaders/light_cube.vs",
-         "/Users/wangruichao/Work/OpenGL_learning/shaders/light_cube.fs");
-    // 这是 x86 mac 所需要的路径
-    // Shader lightingShader("/Users/ruichaowang/Work/Learning_GL/shaders/colors.vs",
-    //      "/Users/ruichaowang/Work/Learning_GL/shaders/colors.fs");
-    // Shader lightCubeShader("/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.vs",
-    //      "/Users/ruichaowang/Work/Learning_GL/shaders/light_cube.fs");
-
+    Shader lightingShader("/Users/wangruichao/Work/Learning_GL/shaders/colors.vs",
+         "/Users/wangruichao/Work/Learning_GL/shaders/colors.fs");
+    Shader lightCubeShader("/Users/wangruichao/Work/Learning_GL/shaders/light_cube.vs",
+         "/Users/wangruichao/Work/Learning_GL/shaders/light_cube.fs");
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
    float vertices[] = {
@@ -165,11 +159,11 @@ int main()
 
         // load textures (we now use a utility function to keep the code more organized)
     // -----------------------------------------------------------------------------
-    unsigned int diffuseMap = loadTexture("/Users/wangruichao/Work/OpenGL_learning/src/container2.png");
+    unsigned int diffuseMap = loadTexture("/Users/wangruichao/Work/Learning_GL/src/container2.png");
 
     // shader configuration
     // --------------------
-    lightingShader.use(); 
+    lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
 
 
@@ -183,7 +177,7 @@ int main()
         // -----
         processInput(window);
 
-        
+
         // render
         // ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -194,7 +188,7 @@ int main()
         lightingShader.setVec3("viewPos", camera.Position);
 
         // light properties
-        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f); 
+        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
         lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
@@ -259,7 +253,7 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    
+
      if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -274,7 +268,7 @@ void processInput(GLFWwindow *window)
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
+    // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
@@ -311,7 +305,7 @@ unsigned int loadTexture(char const * path)
 {
     unsigned int textureID;
     glGenTextures(1, &textureID);
-    
+
     int width, height, nrComponents;
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
     if (data)
