@@ -6,10 +6,21 @@
 
 ## 编译方法
 ```
+cd ..
+rm -rf build
 mkdir -p build
+cd build
 cmake ..
 make
 ./OpenGL
+```
+
+## env
+```
+brew install glfw
+
+#为了方便，路径用绝对路径
+/Users/wangruichao/Work/Learning_GL/
 ```
 
 ## 其他

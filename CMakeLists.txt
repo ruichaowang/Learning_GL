@@ -15,14 +15,14 @@ include_directories(./ ./include ./shaders ./include/glad ./include/KHR ./includ
 # set(GLEW_H /usr/local/Cellar/glew/2.2.0_1/include/GL)
 # set(GLFW_H /usr/local/Cellar/glfw/3.3.7/include/GLFW)
 set(GLEW_H /opt/homebrew/Cellar/glew/2.2.0_1/include/GL)
-set(GLFW_H /opt/homebrew/Cellar/glfw/3.3.7/include/GLFW)
+set(GLFW_H /opt/homebrew/Cellar/glfw/3.4/include/GLFW)
 link_directories(${GLEW_H} ${GLFW_H})
 
 
 # set(GLEW_LINK /usr/local/Cellar/glew/2.2.0_1/lib/libGLEW.2.2.dylib)
 # set(GLFW_LINK /usr/local/Cellar/glfw/3.3.7/lib/libglfw.3.3.dylib)
 set(GLEW_LINK /opt/homebrew/Cellar/glew/2.2.0_1/lib/libGLEW.2.2.dylib)
-set(GLFW_LINK /opt/homebrew/Cellar/glfw/3.3.7/lib/libglfw.3.dylib)
+set(GLFW_LINK /opt/homebrew/Cellar/glfw/3.4/lib/libglfw.3.dylib)
 link_libraries(${OPENGL} ${GLEW_LINK} ${GLFW_LINK})
 
 add_executable(OpenGL src/glad.c src/main.cpp)
