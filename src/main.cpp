@@ -25,7 +25,7 @@ const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(50.0f, 50.0f, 80.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -35,21 +35,9 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.2f, 1.0f, 5.0f);
+glm::vec3 lightPos(70.0f, 70.0f, 8.0f);
 
-// 定义立方体的位置
-glm::vec3 cubePositions[] = {
-    glm::vec3(0.0f, 0.0f, 0.0f),
-    glm::vec3(1.0f, 0.0f, 0.0f),
-    glm::vec3(0.0f, 1.0f, 0.0f),
-    glm::vec3(1.0f, 1.0f, 0.0f),
 
-    glm::vec3(2.0f, 5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3(2.4f, -0.4f, -3.5f),
-    // 这里可以添加更多的位置
-};
 
 // 光源属性结构体
 struct Light
@@ -60,237 +48,289 @@ struct Light
     glm::vec3 specular;
 };
 
-glm::vec3 light_intensity(2.0f);
+glm::vec3 light_intensity(3.0f);
+
+// 函数用于读取CSV文件并返回一个整数的二维向量
+std::vector<std::vector<int>> read_csv(const std::string& filename) {
+    std::vector<std::vector<int>> data;
+
+    // 打开文件
+    std::ifstream infile(filename);
+    std::string line;
+
+    // 按行读取
+    while (std::getline(infile, line)) {
+        std::stringstream lineStream(line);
+        std::string cell;
+        std::vector<int> rowData;
+
+        // 以逗号分隔每个字段
+        while (getline(lineStream, cell, ',')) {
+            // 将字符串转换为整数
+            rowData.push_back(std::stoi(cell));
+        }
+
+        data.push_back(rowData);
+    }
+
+    return data;
+}
 
 int main()
 {
-    std::cout << "hello 1!" << std::endl;
-    /* 读取 python 的占用网络数据 */
-    cnpy::NpyArray arr = cnpy::npy_load("../src/predict_vox.npy");
-    std::cout << "shape size : " << arr.shape.size() << std::endl;
+    /* 定义立方体的位置 */
+    std::vector<glm::vec3> cubePositions = {};
 
-    // 初始化光源, 提高光源的环境光、漫反射光和镜面光强度
-    Light light;
-    light.position = glm::vec3(1.2f, 1.0f, 2.0f) * light_intensity;
-    light.ambient = glm::vec3(0.2f, 0.2f, 0.2f) * light_intensity;
-    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f) * light_intensity;
-    light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
-
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
-
-    // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-
-    // build and compile our shader zprogram
-    // ------------------------------------
-    // 这是 m1 mac 所需要的路径
-    Shader lightingShader("../shaders/colors.vs",
-                          "../shaders/colors.fs");
-    Shader lightCubeShader("../shaders/light_cube.vs",
-                           "../shaders/light_cube.fs");
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-        // positions          // normals           // texture coords
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-
-        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
-    // first, configure the cube's VAO (and VBO)
-    unsigned int VBO, cubeVAO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &VBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindVertexArray(cubeVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
-
-    // we only need to bind to the VBO (to link it with glVertexAttribPointer), no need to fill it; the VBO's data already contains all we need (it's already bound, but we do it again for educational purposes)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // load textures (we now use a utility function to keep the code more organized)
-    // -----------------------------------------------------------------------------
-    unsigned int diffuseMap = loadTexture("../src/container2.png");
-
-    // shader configuration
-    // --------------------
-    lightingShader.use();
-    lightingShader.setInt("material.diffuse", 0);
-
-    // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window))
-    {
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-        // -----
-        processInput(window);
-
-        // render
-        // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        lightingShader.use();
-        lightingShader.setVec3("light.position", lightPos);
-        lightingShader.setVec3("viewPos", camera.Position);
-
-        // light properties
-        lightingShader.setVec3("light.ambient", light.ambient);
-        lightingShader.setVec3("light.diffuse", light.diffuse);
-        lightingShader.setVec3("light.specular", light.specular);
-
-        // material properties
-        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        lightingShader.setFloat("material.shininess", 64.0f);
-
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("projection", projection);
-        lightingShader.setMat4("view", view);
-
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("model", model);
-
-        // bind diffuse map
-        // lightingShader.setInt("material.diffuse", 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-        /*
-        render the cube
-         glBindVertexArray(cubeVAO);
-         glDrawArrays(GL_TRIANGLES, 0, 36);
-         如果需要旋转:
-         float angle = 20.0f * i;
-         model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-        */
-        glBindVertexArray(cubeVAO);
-        for (unsigned int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]); // 位移
-            lightingShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
+    /* 设置运行的位置 */
+    const char *work_path = "~/Work/Learning_GL/build";
+    chdir(work_path);
+    if (1) {        
+        /* 计算 cube 坐标  */
+        for (int z = 0; z < 8; ++z) {
+            const std::string filename = "../src/cordinate/slice_" + std::to_string(z) + ".csv";
+            std::vector<std::vector<int>> data = read_csv(filename);
+            for (int y = 0; y < 100; ++y) {
+                for (int x = 0; x < 100; ++x) {
+                    /* 添加地面 */
+                    if (z ==0 || z==1) {
+                        glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+                        cubePositions.push_back(temp_positon);
+                    }
+                    /* 添加cube */
+                    if(data[y][x] != 17) {
+                        glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+                        cubePositions.push_back(temp_positon);
+                    }
+                }
+            }
         }
 
-        // also draw the lamp object
-        lightCubeShader.use();
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        lightCubeShader.setMat4("model", model);
+        /* cube 整体移动，以及转化到真实世界坐标 */
+    
 
+
+        // 初始化光源, 提高光源的环境光、漫反射光和镜面光强度
+        Light light;
+        light.position = glm::vec3(1.2f, 1.0f, 2.0f) * light_intensity;
+        light.ambient = glm::vec3(0.2f, 0.2f, 0.2f) * light_intensity;
+        light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f) * light_intensity;
+        light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
+
+        // glfw: initialize and configure
+        // ------------------------------
+        glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    #ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
+
+        // glfw window creation
+        // --------------------
+        GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VoxelRender", NULL, NULL);
+        if (window == NULL)
+        {
+            std::cout << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return -1;
+        }
+        glfwMakeContextCurrent(window);
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+        glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetScrollCallback(window, scroll_callback);
+
+        // tell GLFW to capture our mouse
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+        // glad: load all OpenGL function pointers
+        // ---------------------------------------
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return -1;
+        }
+
+        // configure global opengl state
+        // -----------------------------
+        glEnable(GL_DEPTH_TEST);
+
+        // build and compile our shader zprogram
+        // ------------------------------------
+        // 这是 m1 mac 所需要的路径
+        Shader lightingShader("../shaders/colors.vs",
+                            "../shaders/colors.fs");
+        Shader lightCubeShader("../shaders/light_cube.vs",
+                            "../shaders/light_cube.fs");
+        // set up vertex data (and buffer(s)) and configure vertex attributes
+        // ------------------------------------------------------------------
+        float vertices[] = {
+            // positions          // normals           // texture coords
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+
+            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
+        // first, configure the cube's VAO (and VBO)
+        unsigned int VBO, cubeVAO;
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &VBO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glBindVertexArray(cubeVAO);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+
+        // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+        unsigned int lightCubeVAO;
+        glGenVertexArrays(1, &lightCubeVAO);
         glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        // we only need to bind to the VBO (to link it with glVertexAttribPointer), no need to fill it; the VBO's data already contains all we need (it's already bound, but we do it again for educational purposes)
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0);
+
+        // load textures 
+        unsigned int diffuseMap = loadTexture("../src/container2.png");
+
+        // shader configuration
+        // --------------------
+        lightingShader.use();
+        lightingShader.setInt("material.diffuse", 0);
+
+        // render loop
+        // -----------
+        while (!glfwWindowShouldClose(window))
+        {
+            float currentFrame = static_cast<float>(glfwGetTime());
+            deltaTime = currentFrame - lastFrame;
+            lastFrame = currentFrame;
+            // -----
+            processInput(window);
+
+            // render
+            // ------
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            lightingShader.use();
+            lightingShader.setVec3("light.position", lightPos);
+            lightingShader.setVec3("viewPos", camera.Position);
+
+            // light properties
+            lightingShader.setVec3("light.ambient", light.ambient);
+            lightingShader.setVec3("light.diffuse", light.diffuse);
+            lightingShader.setVec3("light.specular", light.specular);
+
+            // material properties
+            lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+            lightingShader.setFloat("material.shininess", 64.0f);
+
+            // view/projection transformations
+            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+            glm::mat4 view = camera.GetViewMatrix();
+            lightingShader.setMat4("projection", projection);
+            lightingShader.setMat4("view", view);
+
+            // world transformation
+            glm::mat4 model = glm::mat4(1.0f);
+            lightingShader.setMat4("model", model);
+
+            // bind diffuse map
+            // lightingShader.setInt("material.diffuse", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+            /*
+            render the cube
+            glBindVertexArray(cubeVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            如果需要旋转:
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            */
+            glBindVertexArray(cubeVAO);
+            for (unsigned int i = 0; i < cubePositions.size(); i++)
+            {
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, cubePositions[i]); // 位移
+                lightingShader.setMat4("model", model);
+                glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
+            }
+
+            // also draw the lamp object
+            lightCubeShader.use();
+            lightCubeShader.setMat4("projection", projection);
+            lightCubeShader.setMat4("view", view);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, lightPos);
+            model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+            lightCubeShader.setMat4("model", model);
+
+            glBindVertexArray(lightCubeVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+            // -------------------------------------------------------------------------------
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+
+        // optional: de-allocate all resources once they've outlived their purpose:
+        // ------------------------------------------------------------------------
+        glDeleteVertexArrays(1, &cubeVAO);
+        glDeleteVertexArrays(1, &lightCubeVAO);
+        glDeleteBuffers(1, &VBO);
+
+        // glfw: terminate, clearing all previously allocated GLFW resources.
+        // ------------------------------------------------------------------
+        glfwTerminate();
     }
-
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
     return 0;
 }
 
