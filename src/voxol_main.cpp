@@ -73,7 +73,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
     return data;
 }
 
-glm::vec3 lightPos(0.0f, 0.0f, 3.0f); /* lighting */
+glm::vec3 lightPos(0.0f, 0.0f, 2.0f); /* lighting */
 glm::vec3 light_intensity(2.0f);
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
 const float voxel_size = 0.2f;
@@ -137,7 +137,8 @@ const int camera_count = 6;
 std::array<glm::mat3, camera_count> intrinsics_;
 std::array<glm::quat, camera_count> quaternions_;
 std::array<glm::vec3, camera_count> translation_vectors_;
-std::array<glm::mat4, camera_count> extrinsics_;
+std::array<glm::vec3, camera_count> t2_;
+std::array<glm::mat4, camera_count> model_mat_; //
 
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
@@ -150,19 +151,32 @@ std::vector<glm::vec3> cube_positions_ = {};
  */
 int main()
 {
-    /* 生成需要的内外参，先用一个相机的来写流程 */
+    /* 生成需要的内外参，先用一个相机的来测试流程 */
     // front camera raw data
     intrinsics_[0] = glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
     quaternions_[0] = glm::quat(0.4998015430569128, -0.5030316162024876, 0.4997798114386805, -0.49737083824542755);
     translation_vectors_[0] = glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
-    // 将四元数转换为旋转矩阵
-    glm::mat4 rotation_matrix = glm::mat4_cast(quaternions_[0]);
+    /* 将四元数转换为旋转矩阵，但是我不确定是从模型（或局部）空间旋转到世界空间，还是相反， 在 solve pnp 中是 from the model coordinate system to the camera coordinate system. 我们可以转化成3维矩阵方便计算 */
+    glm::mat3 rotation_matrix_w2c = glm::mat3_cast(quaternions_[0]);
+    glm::mat3 rotation_matrix_c2w = glm::transpose(rotation_matrix_w2c);
+
     // 创建平移矩阵
     glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), translation_vectors_[0]);
-    // 结合旋转矩阵和平移矩阵得到外参矩阵
-    extrinsics_[0] = translation_matrix * rotation_matrix;
+    // 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系, 负号是因为
+    t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
 
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
+        }
+    }
+    model_mat_[0][0][3] = t2_[0][0];
+    model_mat_[0][1][3] = t2_[0][1];
+    model_mat_[0][2][3] = t2_[0][2];
+    model_mat_[0][3][3] = 1.0f;
+
+    // extrinsics_[0] = glm::transpose(extrinsics_[0]);       // 是因为 opencv 和 glm 主序不一样？
     /* 3D point to 2d, Pinhole camera */
 
     /* 生成立方体 */
@@ -278,12 +292,12 @@ int main()
         return -1;
     }
 
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+
     if (1)
     {
-
-        // configure global opengl state
-        // -----------------------------
-        glEnable(GL_DEPTH_TEST);
 
         // build and compile our shader zprogram
         // ------------------------------------
@@ -366,6 +380,13 @@ int main()
             lightingShader.setVec3("light.position", lightPos);
             lightingShader.setVec3("viewPos", camera.Position);
 
+            /* 添加上相机内外参 */
+            lightingShader.setMat4("extrinsics", model_mat_[0]);
+            glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0], intrinsics_[0][1][1]);
+            glm::vec2 principal_point = glm::vec2(intrinsics_[0][0][2], intrinsics_[0][1][2]);
+            lightingShader.setVec2("focal_length", focal_length);
+            lightingShader.setVec2("principal_point", principal_point);
+
             // view/projection transformations
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -385,7 +406,9 @@ int main()
             {
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, cube_positions_[i]); // 位移
-                lightingShader.setMat4("model",  model); // extrinsics_[0] //model  怎么把外参加进去呢？
+                // model = extrinsics_[0] * model;                    // 添加外参
+                lightingShader.setMat4("model", model);
+
                 glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
             }
 
@@ -396,6 +419,7 @@ int main()
             model = glm::mat4(1.0f);
             model = glm::translate(model, lightPos);
             model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+            // model = extrinsics_[0] * model;                    // 添加外参
             lightCubeShader.setMat4("model", model);
 
             glBindVertexArray(lightCubeVAO);

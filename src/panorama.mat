@@ -1,0 +1,164 @@
+material {
+    name : PanoramaMaterial,
+
+    parameters : [
+        {
+           type : sampler2d,
+           name : inputTexture
+        },
+        {
+            type : bool,
+            name : inputsRGB
+        },
+        {
+            type : float2,
+            name : offsetUv
+        },
+        {
+           type : sampler2d,
+           precision : high,
+           name : correctTexture
+        },
+        {
+           type : mat4,
+           name : modelMat
+        },
+        {
+           type : mat4,
+           name : WheelHubViewMat
+        },
+        {
+           type : float2,
+           precision : high,
+           name : cameraFocal
+        },
+        {
+           type : float2,
+           precision : high,
+           name : cameraCenter
+        },
+        {
+            type : bool,
+            name : splice_enable
+        },
+        {
+            type : int,
+            name : part
+        },
+        {
+            type : float2,
+            name : line_base_l
+        },
+        {
+            type : float2,
+            name : line_base_r
+        },
+        {
+            type : float2,
+            name : l_angle
+        },
+        {
+            type : bool,
+            name : gamma
+        },
+        {
+            type : float2,
+            name : gamma_balance
+        },
+        {
+            type : float2,
+            name : r_angle
+        }
+    ],
+    requires : [
+        position,
+        uv0
+    ],
+    variables : [
+         modelPos
+    ],
+    shadingModel : unlit,
+    blending : transparent,
+    depthWrite : false,
+    doubleSided : true
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        highp vec3 wpos = getPosition().xyz;
+        highp vec4 wpos4 = materialParams.modelMat * materialParams.WheelHubViewMat * vec4(wpos, 1.0);
+        wpos4.xyz = wpos4.xyz/wpos4.w;
+        material.modelPos = wpos4;
+    }
+}
+
+fragment {
+    float orientedAngle(vec2 a, vec2 b) {
+        return acos(clamp(dot(a, b), -1.0, 1.0)) * 180.0/PI;
+    }
+    float sliceLineAlpha(vec3 pos, vec2 base, vec2 up, vec2 angleRange) {
+        vec2 dir = normalize(pos.xy - base);
+        //float angle = orientedAngle(dir, up);
+        //return 1.0 - clamp((angle - angleRange.x)/(angleRange.y-angleRange.x), 0.0, 1.0);
+        float angle = abs(dir.y/dir.x);
+        if(dir.y * up.y <= 0.0f){
+            angle  = 0.0f;
+        }
+        return  clamp((angle - angleRange.x)/(angleRange.y-angleRange.x), 0.0, 1.0);        
+    }
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+
+        vec3 wpos = getWorldPosition() + getWorldOffset();
+        highp vec4 wpos4 = variable_modelPos;
+
+        if (wpos4.z < 0.0) {    
+            material.baseColor = vec4(0.0);
+            return;
+        }
+
+        highp float pz = wpos4.z;
+        if (abs(pz) < 0.00001)
+            pz = 0.1;
+        highp vec2 viewp = vec2(wpos4.x/pz, wpos4.y/pz);
+        
+        highp float r = length(viewp);
+        highp float theta = atan(r); theta = theta/HALF_PI + HALF_PI/2000.0f;
+        highp float theta_d = texture(materialParams_correctTexture, vec2(0.5, theta)).r;
+        highp float inv_r = r > 0.0000001 ? 1.0/r : 1.0;
+        highp float cdist = r > 0.0000001 ? theta_d * inv_r : 1.0;
+
+        highp vec2 xd1 = viewp; //不用进行畸变矫正？
+        highp vec2 final_point = xd1 * materialParams.cameraFocal + materialParams.cameraCenter;
+        final_point.x = final_point.x + materialParams.offsetUv.x * (1.0 - 2.0 * final_point.x);
+        final_point.y = final_point.y + materialParams.offsetUv.y * (1.0 - 2.0 * final_point.y);
+
+        float alpha = 1.0;
+        if (materialParams.splice_enable) {
+            vec3 pos = wpos;
+            
+            vec2 up = vec2(0.0, 1.0);
+            if (materialParams.part == 0) {
+            }
+            else if (materialParams.part == 1) {
+                up = vec2(0.0, -1.0);
+            }
+            if (pos.x < materialParams.line_base_l.x) {
+                alpha = sliceLineAlpha(pos, materialParams.line_base_l, up, materialParams.l_angle);
+            }
+            else if (pos.x > materialParams.line_base_r.x) {
+                alpha = sliceLineAlpha(pos, materialParams.line_base_r, up, materialParams.r_angle);
+            }
+        }
+        vec3 oclr = texture(materialParams_inputTexture, final_point).rgb;
+        if (materialParams.inputsRGB) {
+            oclr = inverseTonemapSRGB(oclr);
+        }
+        if (materialParams.gamma) {
+            float fi = materialParams.gamma_balance.x + (materialParams.gamma_balance.y - materialParams.gamma_balance.x) * final_point.x;
+            oclr = pow(oclr, vec3(fi));
+        }
+        
+        material.baseColor = vec4(oclr * alpha, alpha);
+    }
+}
