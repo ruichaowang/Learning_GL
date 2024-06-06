@@ -235,51 +235,51 @@ int main()
         }
     }
 
-    if (1)
-    {
+    /* 设置光源 */
+    Light light;
+    light.position = glm::vec3(1.2f, 1.0f, 2.0f) * light_intensity;
+    light.ambient = glm::vec3(0.2f, 0.2f, 0.2f) * light_intensity;
+    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f) * light_intensity;
+    light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
 
-        // 初始化光源, 提高光源的环境光、漫反射光和镜面光强度
-        Light light;
-        light.position = glm::vec3(1.2f, 1.0f, 2.0f) * light_intensity;
-        light.ambient = glm::vec3(0.2f, 0.2f, 0.2f) * light_intensity;
-        light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f) * light_intensity;
-        light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
+    /* glfw & glad: initialize and configure */
 
-        // glfw: initialize and configure
-        // ------------------------------
-        glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-        // glfw window creation
-        // --------------------
-        GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VoxelRender", NULL, NULL);
-        if (window == NULL)
-        {
-            std::cout << "Failed to create GLFW window" << std::endl;
-            glfwTerminate();
-            return -1;
-        }
-        glfwMakeContextCurrent(window);
-        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-        glfwSetCursorPosCallback(window, mouse_callback);
-        glfwSetScrollCallback(window, scroll_callback);
+    // glfw window creation
+    // --------------------
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VoxelRender", NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
-        // tell GLFW to capture our mouse
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        // glad: load all OpenGL function pointers
-        // ---------------------------------------
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        {
-            std::cout << "Failed to initialize GLAD" << std::endl;
-            return -1;
-        }
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+
+    if (1)
+    {
 
         // configure global opengl state
         // -----------------------------
@@ -372,9 +372,7 @@ int main()
             lightingShader.setMat4("projection", projection);
             lightingShader.setMat4("view", view);
 
-            // world transformation
-            glm::mat4 model = glm::mat4(1.0f);
-            lightingShader.setMat4("model", model); // lightingShader.setMat4("model", extrinsics_[0]);
+            glm::mat4 model;
 
             // bind diffuse map
             lightingShader.setInt("material.diffuse", 0);
@@ -387,7 +385,7 @@ int main()
             {
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, cube_positions_[i]); // 位移
-                lightingShader.setMat4("model", model);
+                lightingShader.setMat4("model",  model); // extrinsics_[0] //model  怎么把外参加进去呢？
                 glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
             }
 
