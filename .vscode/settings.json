@@ -92,6 +92,10 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "ranges": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "random": "cpp",
+        "format": "cpp",
+        "stdfloat": "cpp",
+        "stop_token": "cpp"
     }
 }

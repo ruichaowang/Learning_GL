@@ -1,8 +1,7 @@
 # Learning_GL
-- 简单的 opengl 环境依赖 demo， 里面应该运行后是一个可以跟随鼠标运动的箱子贴图
-- 当前环境是直接依赖于mac 里的glfw环境，所以有依赖问题，
-- 安装 brew install glfw ，如果版本不对记得在 cmakelist 里修改 版本（也许是版本不一致）
-- 当前的依赖化境是直接从 homebrew 中读取的，如果可以应该直接去拿到工程中来
+
+- 当前环境是直接依赖于 mac 里的glfw环境，所以有依赖问题，安装 brew install glfw ，如果版本不对记得在 cmakelist 里修改 版本（也许是版本不一致）， 当前的依赖化境是直接从 homebrew 中读取的，如果可以应该直接去拿到工程中来
+- main.cpp 是形成了箱子的地图，每一个箱子都贴图了，有环境光照，有鼠标/键盘
 
 ## 编译方法
 ```
@@ -40,6 +39,7 @@ brew install glfw
 - [第二章说明](https://learnopengl-cn.github.io/01%20Getting%20started/04%20Hello%20Triangle/)
 - [第一章说明](https://learnopengl-cn.github.io/01%20Getting%20started/03%20Hello%20Window/)
 - [第一章源代码](https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/1.2.hello_window_clear/hello_window_clear.cpp)
+- [光照基础](https://learnopengl-cn.readthedocs.io/zh/latest/02%20Lighting/02%20Basic%20Lighting/)
 
 ## github 登录不上
 - https://juejin.cn/post/6844904193170341896

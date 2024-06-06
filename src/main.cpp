@@ -11,7 +11,7 @@
 #include <learnopengl/camera.h>
 #include <iostream>
 
-#include "cnpy.h" // 读取 python 的输出结果
+#include <unistd.h> 
 
 // function declarations
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -79,7 +79,12 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
 
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
 const float voxel_size = 0.2f;
-const char *work_path = "~/Work/Learning_GL/build";
+auto color_vs = "shaders/colors.vs";
+auto color_fs =  "shaders/colors.fs";
+auto light_cube_vs = "shaders/light_cube.vs";
+auto light_cube_fs = "shaders/light_cube.fs";
+auto texture_path = "assets/container2.png";
+auto cordinate_path = "assets/cordinate/slice_";
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -128,7 +133,6 @@ const float original_ertices[] = {
 
 int main()
 {
-    chdir(work_path);                          /* 设置运行的位置 */
     std::vector<glm::vec3> cubePositions = {}; /* 定义立方体的位置 */
 
     /* 生成立方体 */
@@ -139,7 +143,7 @@ int main()
         /* 加载 cube 坐标  */
         for (int z = 0; z < 8; ++z)
         {
-            const std::string filename = "../src/cordinate/slice_" + std::to_string(z) + ".csv";
+            const std::string filename = cordinate_path + std::to_string(z) + ".csv";
             std::vector<std::vector<int>> data = read_csv(filename);
             for (int y = 0; y < height; ++y)
             {
@@ -253,10 +257,8 @@ int main()
 
         // build and compile our shader zprogram
         // ------------------------------------
-        Shader lightingShader("../shaders/colors.vs",
-                              "../shaders/colors.fs");
-        Shader lightCubeShader("../shaders/light_cube.vs",
-                               "../shaders/light_cube.fs");
+        Shader lightingShader(color_vs, color_fs);
+        Shader lightCubeShader(light_cube_vs, light_cube_fs);
         // set up vertex data (and buffer(s)) and configure vertex attributes
         // ------------------------------------------------------------------
 
@@ -301,7 +303,8 @@ int main()
         glEnableVertexAttribArray(0);
 
         /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */ 
-        unsigned int diffuseMap = loadTexture("../assets/container2.png");
+        
+        unsigned int diffuseMap = loadTexture(texture_path);
         //unsigned int cam_front_tex = loadTexture("../assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg");
 
 
