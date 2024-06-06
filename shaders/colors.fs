@@ -49,7 +49,7 @@ void main()
     // FragColor = vec4(result, 1.0);
 
     // 测试
-    // FragColor = vec4(0.0, 1.0, 1.0, 1.0); // 青色 (Cyan)，无光照效果, 但是轮廓没有了，
+
 
     // 这部分是贴图的逻辑
     highp float pz = model_position.z;
@@ -60,4 +60,6 @@ void main()
     highp vec2 final_point = viewp * focal_lengths + cammera_principal_point;
     vec3 oclr = texture(material.diffuse, final_point).rgb;
     FragColor = vec4(oclr, 1.0);
+
+    // FragColor = vec4(0.0, 1.0, 1.0, 0.2); // 青色 (Cyan)，无光照效果, 但是轮廓没有了，
 } 

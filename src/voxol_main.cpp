@@ -84,8 +84,8 @@ const auto light_cube_fs = "shaders/light_cube.fs";
 const auto texture_path = "assets/container2.png";
 const auto cordinate_path = "assets/cordinate/slice_";
 const auto cam_front_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
-const int image_width = 1600;
-const int image_height = 900;
+const auto image_width = 1600.0;
+const auto image_height = 900.0;
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -151,32 +151,35 @@ std::vector<glm::vec3> cube_positions_ = {};
  */
 int main()
 {
-    /* 生成需要的内外参，先用一个相机的来测试流程 */
+    /** 生成需要的内外参，先用一个相机的来测试流程
+     *  旋转向量，在 solve pnp 中是 from the model coordinate system to the camera coordinate system.
+     * 在此，将四元数转换为旋转矩阵，看起来是 camera to world，
+     * 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系, 负号是因为要反过来求变化方向
+    */
     // front camera raw data
     intrinsics_[0] = glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
     quaternions_[0] = glm::quat(0.4998015430569128, -0.5030316162024876, 0.4997798114386805, -0.49737083824542755);
     translation_vectors_[0] = glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
-
-    /* 将四元数转换为旋转矩阵，但是我不确定是从模型（或局部）空间旋转到世界空间，还是相反， 在 solve pnp 中是 from the model coordinate system to the camera coordinate system. 我们可以转化成3维矩阵方便计算 */
-    glm::mat3 rotation_matrix_w2c = glm::mat3_cast(quaternions_[0]);
-    glm::mat3 rotation_matrix_c2w = glm::transpose(rotation_matrix_w2c);
-
-    // 创建平移矩阵
-    glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), translation_vectors_[0]);
-    // 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系, 负号是因为
+    glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
     t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
-
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
         }
     }
-    model_mat_[0][0][3] = t2_[0][0];
-    model_mat_[0][1][3] = t2_[0][1];
-    model_mat_[0][2][3] = t2_[0][2];
+    model_mat_[0][3][0] = t2_[0][0];
+    model_mat_[0][3][1] = t2_[0][1];
+    model_mat_[0][3][2] = t2_[0][2];
     model_mat_[0][3][3] = 1.0f;
+    model_mat_[0] = glm::inverse(model_mat_[0]);    //到这里结果是完全一致的，是因为 opencv 和 glm 主序不一样？
+    // model_mat_[0] = glm::transpose(model_mat_[0]);
+    std::cout << "wrc final model mat"<< std::endl;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            std::cout << model_mat_[0][i][j] << " ";
+        }
+    }
 
-    // extrinsics_[0] = glm::transpose(extrinsics_[0]);       // 是因为 opencv 和 glm 主序不一样？
     /* 3D point to 2d, Pinhole camera */
 
     /* 生成立方体 */
@@ -382,8 +385,8 @@ int main()
 
             /* 添加上相机内外参 */
             lightingShader.setMat4("extrinsics", model_mat_[0]);
-            glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0], intrinsics_[0][1][1]);
-            glm::vec2 principal_point = glm::vec2(intrinsics_[0][0][2], intrinsics_[0][1][2]);
+            glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0]/image_width , intrinsics_[0][1][1]/image_height);
+            glm::vec2 principal_point = glm::vec2(intrinsics_[0][0][2]/image_width, intrinsics_[0][1][2]/image_height);
             lightingShader.setVec2("focal_length", focal_length);
             lightingShader.setVec2("principal_point", principal_point);
 
@@ -406,7 +409,6 @@ int main()
             {
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, cube_positions_[i]); // 位移
-                // model = extrinsics_[0] * model;                    // 添加外参
                 lightingShader.setMat4("model", model);
 
                 glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
@@ -419,7 +421,6 @@ int main()
             model = glm::mat4(1.0f);
             model = glm::translate(model, lightPos);
             model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-            // model = extrinsics_[0] * model;                    // 添加外参
             lightCubeShader.setMat4("model", model);
 
             glBindVertexArray(lightCubeVAO);
