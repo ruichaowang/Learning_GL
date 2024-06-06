@@ -11,7 +11,7 @@
 #include <learnopengl/camera.h>
 #include <iostream>
 
-#include <unistd.h> 
+#include <unistd.h>
 
 // function declarations
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -80,7 +80,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
 const float voxel_size = 0.2f;
 auto color_vs = "shaders/colors.vs";
-auto color_fs =  "shaders/colors.fs";
+auto color_fs = "shaders/colors.fs";
 auto light_cube_vs = "shaders/light_cube.vs";
 auto light_cube_fs = "shaders/light_cube.fs";
 auto texture_path = "assets/container2.png";
@@ -302,11 +302,10 @@ int main()
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
         glEnableVertexAttribArray(0);
 
-        /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */ 
-        
-        unsigned int diffuseMap = loadTexture(texture_path);
-        //unsigned int cam_front_tex = loadTexture("../assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg");
+        /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */
 
+        unsigned int diffuseMap = loadTexture(texture_path);
+        // unsigned int cam_front_tex = loadTexture("../assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg");
 
         // shader configuration
         // --------------------
