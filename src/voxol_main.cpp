@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
@@ -72,7 +73,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
     return data;
 }
 
-glm::vec3 lightPos(0.0f, 0.0f, 3.0f);  /* lighting */
+glm::vec3 lightPos(0.0f, 0.0f, 3.0f); /* lighting */
 glm::vec3 light_intensity(2.0f);
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
 const float voxel_size = 0.2f;
@@ -82,7 +83,9 @@ const auto light_cube_vs = "shaders/light_cube.vs";
 const auto light_cube_fs = "shaders/light_cube.fs";
 const auto texture_path = "assets/container2.png";
 const auto cordinate_path = "assets/cordinate/slice_";
-const auto cam_front = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
+const auto cam_front_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
+const int image_width = 1600;
+const int image_height = 900;
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -134,17 +137,34 @@ const int camera_count = 6;
 std::array<glm::mat3, camera_count> intrinsics_;
 std::array<glm::quat, camera_count> quaternions_;
 std::array<glm::vec3, camera_count> translation_vectors_;
+std::array<glm::mat4, camera_count> extrinsics_;
 
 /* 定义立方体的位置 */
-std::vector<glm::vec3> cube_positions_ = {}; 
+std::vector<glm::vec3> cube_positions_ = {};
+
+/**
+ * @brief 绘制 Voxel + camera projection
+ * voxel 不需要进行世界坐标转化，直接使用原始model，但是疑惑的是怎么使用上外参和内参
+ *
+ * @return int
+ */
 int main()
 {
+    /* 生成需要的内外参，先用一个相机的来写流程 */
     // front camera raw data
-    intrinsics_[0] =glm::mat3(1266.417203046554, 0.0, 816.2670197447984,0.0, 1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
+    intrinsics_[0] = glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
     quaternions_[0] = glm::quat(0.4998015430569128, -0.5030316162024876, 0.4997798114386805, -0.49737083824542755);
-    translation_vectors_[0] =glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
+    translation_vectors_[0] = glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
-    
+    // 将四元数转换为旋转矩阵
+    glm::mat4 rotation_matrix = glm::mat4_cast(quaternions_[0]);
+    // 创建平移矩阵
+    glm::mat4 translation_matrix = glm::translate(glm::mat4(1.0f), translation_vectors_[0]);
+    // 结合旋转矩阵和平移矩阵得到外参矩阵
+    extrinsics_[0] = translation_matrix * rotation_matrix;
+
+    /* 3D point to 2d, Pinhole camera */
+
     /* 生成立方体 */
     {
         auto depth = 30;
@@ -215,7 +235,6 @@ int main()
         }
     }
 
-
     if (1)
     {
 
@@ -265,7 +284,6 @@ int main()
         // configure global opengl state
         // -----------------------------
         glEnable(GL_DEPTH_TEST);
-        
 
         // build and compile our shader zprogram
         // ------------------------------------
@@ -316,11 +334,9 @@ int main()
 
         /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */
 
-        unsigned int diffuseMap = loadTexture(texture_path);
-        // unsigned int cam_front_tex = loadTexture("../assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg");
+        unsigned int cam_front_tex = loadTexture(cam_front_path);
 
         // shader configuration
-        // --------------------
         lightingShader.use();
         lightingShader.setInt("material.diffuse", 0);
         // light properties
@@ -358,21 +374,14 @@ int main()
 
             // world transformation
             glm::mat4 model = glm::mat4(1.0f);
-            lightingShader.setMat4("model", model);
+            lightingShader.setMat4("model", model); // lightingShader.setMat4("model", extrinsics_[0]);
 
             // bind diffuse map
             lightingShader.setInt("material.diffuse", 0);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, diffuseMap);
+            glBindTexture(GL_TEXTURE_2D, cam_front_tex);
 
-            /*
-            render the cube
-            glBindVertexArray(cubeVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-            如果需要旋转:
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            */
+            /* render the cube */
             glBindVertexArray(cubeVAO);
             for (unsigned int i = 0; i < cube_positions_.size(); i++)
             {
