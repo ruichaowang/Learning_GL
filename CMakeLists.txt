@@ -9,13 +9,12 @@ add_subdirectory(./include/glfw-3.4)
 
 include_directories(./ ./include ./shaders ./include/glad ./include/KHR ./include/glm)
 
-
 # glew 不支持 add_subdirectory，所以直接使用安装的 /opt/homebrew/Cellar/glew/2.2.0_1/include/GL  /opt/homebrew/Cellar/glew/2.2.0_1/lib/libGLEW.2.2.dylib
 find_package(GLEW REQUIRED)
 
 # 更换我们编译的 demo
-add_executable(OpenGL src/glad.c src/main.cpp)
-# add_executable(OpenGL src/glad.c src/voxol_main.cpp)
+# add_executable(OpenGL src/glad.c src/main.cpp)
+add_executable(OpenGL src/glad.c src/voxol_main.cpp)
 
 target_link_libraries(OpenGL glfw)
 target_link_libraries(OpenGL GLEW::GLEW)

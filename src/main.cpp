@@ -131,6 +131,7 @@ const float original_ertices[] = {
     -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
     -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
 
+
 int main()
 {
     std::vector<glm::vec3> cubePositions = {}; /* 定义立方体的位置 */
