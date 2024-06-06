@@ -25,7 +25,7 @@ const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(50.0f, 50.0f, 80.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -34,10 +34,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// lighting
-glm::vec3 lightPos(70.0f, 70.0f, 8.0f);
-
-
+// lighting 这里未来可以删去
+glm::vec3 lightPos(0.0f, 0.0f, 3.0f);
 
 // 光源属性结构体
 struct Light
@@ -48,10 +46,11 @@ struct Light
     glm::vec3 specular;
 };
 
-glm::vec3 light_intensity(3.0f);
+glm::vec3 light_intensity(2.0f);
 
-// 函数用于读取CSV文件并返回一个整数的二维向量
-std::vector<std::vector<int>> read_csv(const std::string& filename) {
+/* 函数用于读取CSV文件并返回一个整数的二维向量 */
+std::vector<std::vector<int>> read_csv(const std::string &filename)
+{
     std::vector<std::vector<int>> data;
 
     // 打开文件
@@ -59,13 +58,15 @@ std::vector<std::vector<int>> read_csv(const std::string& filename) {
     std::string line;
 
     // 按行读取
-    while (std::getline(infile, line)) {
+    while (std::getline(infile, line))
+    {
         std::stringstream lineStream(line);
         std::string cell;
         std::vector<int> rowData;
 
         // 以逗号分隔每个字段
-        while (getline(lineStream, cell, ',')) {
+        while (getline(lineStream, cell, ','))
+        {
             // 将字符串转换为整数
             rowData.push_back(std::stoi(cell));
         }
@@ -76,28 +77,90 @@ std::vector<std::vector<int>> read_csv(const std::string& filename) {
     return data;
 }
 
+glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
+const float voxel_size = 0.2f;
+const char *work_path = "~/Work/Learning_GL/build";
+
+/* 立方体定点数据，应该需要转化 */
+const float original_ertices[] = {
+    // positions          // normals           // texture coords
+    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+    -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+
+    -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+    -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+
+    -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+
+    -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
+
 int main()
 {
-    /* 定义立方体的位置 */
-    std::vector<glm::vec3> cubePositions = {};
+    chdir(work_path);                          /* 设置运行的位置 */
+    std::vector<glm::vec3> cubePositions = {}; /* 定义立方体的位置 */
 
-    /* 设置运行的位置 */
-    const char *work_path = "~/Work/Learning_GL/build";
-    chdir(work_path);
-    if (1) {        
-        /* 计算 cube 坐标  */
-        for (int z = 0; z < 8; ++z) {
+    /* 生成立方体 */
+    {
+        auto depth = 30;
+        auto height = 100;
+        auto width = 100;
+        /* 加载 cube 坐标  */
+        for (int z = 0; z < 8; ++z)
+        {
             const std::string filename = "../src/cordinate/slice_" + std::to_string(z) + ".csv";
             std::vector<std::vector<int>> data = read_csv(filename);
-            for (int y = 0; y < 100; ++y) {
-                for (int x = 0; x < 100; ++x) {
+            for (int y = 0; y < height; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
                     /* 添加地面 */
-                    if (z ==0 || z==1) {
+                    if (z == 0 || z == 1)
+                    {
                         glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                         cubePositions.push_back(temp_positon);
                     }
+
+                    if (y == 0 || y == 99 || x == 0 || x == 99)
+                    {
+                        glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+                        cubePositions.push_back(temp_positon);
+                    }
+
                     /* 添加cube */
-                    if(data[y][x] != 17) {
+                    if (data[y][x] != 17)
+                    {
                         glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                         cubePositions.push_back(temp_positon);
                     }
@@ -105,9 +168,41 @@ int main()
             }
         }
 
-        /* cube 整体移动，以及转化到真实世界坐标 */
-    
+        std::vector<glm::vec3> wallPositions;
+        // 生成四周墙壁
+        for (int z = 0; z < depth; ++z)
+        {
+            for (int y = 0; y < height; ++y)
+            {
+                // 左右墙壁
+                wallPositions.push_back(glm::vec3(0, y, z));
+                wallPositions.push_back(glm::vec3(width - 1, y, z));
+            }
+            for (int x = 0; x < width; ++x)
+            {
+                // 前后墙壁
+                wallPositions.push_back(glm::vec3(x, 0, z));
+                wallPositions.push_back(glm::vec3(x, height - 1, z));
+            }
+        }
+        cubePositions.insert(cubePositions.end(), wallPositions.begin(), wallPositions.end());
 
+        // 移除重复的顶点
+        cubePositions.erase(std::unique(cubePositions.begin(), cubePositions.end()), cubePositions.end());
+
+        /* cube 整体移动，以及转化到真实世界坐标 */
+        for (auto &position : cubePositions)
+        {
+            position -= offset;
+        }
+        for (auto &position : cubePositions)
+        {
+            position *= voxel_size;
+        }
+    }
+
+    if (1)
+    {
 
         // 初始化光源, 提高光源的环境光、漫反射光和镜面光强度
         Light light;
@@ -123,9 +218,9 @@ int main()
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    #ifdef __APPLE__
+#ifdef __APPLE__
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
+#endif
 
         // glfw window creation
         // --------------------
@@ -158,63 +253,33 @@ int main()
 
         // build and compile our shader zprogram
         // ------------------------------------
-        // 这是 m1 mac 所需要的路径
         Shader lightingShader("../shaders/colors.vs",
-                            "../shaders/colors.fs");
+                              "../shaders/colors.fs");
         Shader lightCubeShader("../shaders/light_cube.vs",
-                            "../shaders/light_cube.fs");
+                               "../shaders/light_cube.fs");
         // set up vertex data (and buffer(s)) and configure vertex attributes
         // ------------------------------------------------------------------
-        float vertices[] = {
-            // positions          // normals           // texture coords
-            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-            -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-            0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        /* 缩放顶点数据 */
+        float scaledVertices[sizeof(original_ertices) / sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
+        for (size_t i = 0; i < sizeof(original_ertices) / sizeof(float); i += 8)
+        {
+            scaledVertices[i] = original_ertices[i] * voxel_size;         // x坐标
+            scaledVertices[i + 1] = original_ertices[i + 1] * voxel_size; // y坐标
+            scaledVertices[i + 2] = original_ertices[i + 2] * voxel_size; // z坐标
+            // 法线和纹理坐标保持不变
+            for (int j = 3; j < 8; ++j)
+            {
+                scaledVertices[i + j] = original_ertices[i + j];
+            }
+        }
 
-            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-
-            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
-            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-            -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
-        // first, configure the cube's VAO (and VBO)
         unsigned int VBO, cubeVAO;
         glGenVertexArrays(1, &cubeVAO);
         glGenBuffers(1, &VBO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(scaledVertices), scaledVertices, GL_STATIC_DRAW);
 
         glBindVertexArray(cubeVAO);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
@@ -235,13 +300,22 @@ int main()
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
         glEnableVertexAttribArray(0);
 
-        // load textures 
-        unsigned int diffuseMap = loadTexture("../src/container2.png");
+        /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */ 
+        unsigned int diffuseMap = loadTexture("../assets/container2.png");
+        //unsigned int cam_front_tex = loadTexture("../assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg");
+
 
         // shader configuration
         // --------------------
         lightingShader.use();
         lightingShader.setInt("material.diffuse", 0);
+        // light properties
+        lightingShader.setVec3("light.ambient", light.ambient);
+        lightingShader.setVec3("light.diffuse", light.diffuse);
+        lightingShader.setVec3("light.specular", light.specular);
+        // material properties
+        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightingShader.setFloat("material.shininess", 64.0f);
 
         // render loop
         // -----------
@@ -262,15 +336,6 @@ int main()
             lightingShader.setVec3("light.position", lightPos);
             lightingShader.setVec3("viewPos", camera.Position);
 
-            // light properties
-            lightingShader.setVec3("light.ambient", light.ambient);
-            lightingShader.setVec3("light.diffuse", light.diffuse);
-            lightingShader.setVec3("light.specular", light.specular);
-
-            // material properties
-            lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-            lightingShader.setFloat("material.shininess", 64.0f);
-
             // view/projection transformations
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -282,7 +347,7 @@ int main()
             lightingShader.setMat4("model", model);
 
             // bind diffuse map
-            // lightingShader.setInt("material.diffuse", 0);
+            lightingShader.setInt("material.diffuse", 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
