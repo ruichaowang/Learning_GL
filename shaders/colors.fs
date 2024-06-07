@@ -29,7 +29,7 @@ uniform vec2 cammera_principal_point;
 void main()
 {
     // 此方案是原始的
-    // ambient
+    // //ambient
     // vec3 ambient = light.ambient * texture(material.diffuse, TexCoords).rgb;
   	
     // //diffuse 
@@ -48,16 +48,14 @@ void main()
 
     // FragColor = vec4(result, 1.0);
 
-    // 测试
-
 
     // 这部分是贴图的逻辑
-    highp float pz = model_position.z;
+    float pz = model_position.z;
     if (abs(pz) < 0.00001) {
-        pz = 0.1;
+        pz = 1.0;
     }
-    highp vec2 viewp = vec2(model_position.x/pz, model_position.y/pz);
-    highp vec2 final_point = viewp * focal_lengths + cammera_principal_point;
+    vec2 viewp = vec2(model_position.x/pz, model_position.y/pz);
+    vec2 final_point = viewp * focal_lengths + cammera_principal_point;
     vec3 oclr = texture(material.diffuse, final_point).rgb;
     FragColor = vec4(oclr, 1.0);
 

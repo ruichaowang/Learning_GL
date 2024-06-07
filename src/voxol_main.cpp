@@ -76,7 +76,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
 glm::vec3 lightPos(0.0f, 0.0f, 2.0f); /* lighting */
 glm::vec3 light_intensity(2.0f);
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
-const float voxel_size = 0.2f;
+const float voxel_size = 1.0f;
 const auto color_vs = "shaders/colors.vs";
 const auto color_fs = "shaders/colors.fs";
 const auto light_cube_vs = "shaders/light_cube.vs";
@@ -383,12 +383,22 @@ int main()
             lightingShader.setVec3("light.position", lightPos);
             lightingShader.setVec3("viewPos", camera.Position);
 
-            /* 添加上相机内外参 */
+            /* 添加上相机内外参, 内参也确认ok */
             lightingShader.setMat4("extrinsics", model_mat_[0]);
             glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0]/image_width , intrinsics_[0][1][1]/image_height);
             glm::vec2 principal_point = glm::vec2(intrinsics_[0][0][2]/image_width, intrinsics_[0][1][2]/image_height);
             lightingShader.setVec2("focal_length", focal_length);
             lightingShader.setVec2("principal_point", principal_point);
+
+            /* 测试一个点对应的uv,和 SVM 中一致, 所以莫非是坐标不对？ */
+            {
+                // glm::vec4 test_point = glm::vec4(100000.0f, 20000.0f, 10000.0f, 1.0f);
+                // glm::vec4 wpos4 =  model_mat_[0] * test_point;
+                // glm::vec2 xd1 = glm::vec2(wpos4.x / wpos4.z, wpos4.y / wpos4.z);
+                // glm::vec2 final_point = glm::vec2(focal_length.x * xd1.x + principal_point.x, focal_length.y * xd1.y + principal_point.y);
+                // std::cout << "final_point: " << final_point.x << " " << final_point.y << std::endl;   //这个是没有问题的，
+            }
+          
 
             // view/projection transformations
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
