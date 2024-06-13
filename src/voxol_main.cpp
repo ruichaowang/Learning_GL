@@ -134,55 +134,9 @@ std::array<glm::mat4, camera_count> model_mat_; //
 
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
-
-/**
- * @brief 绘制 Voxel + camera projection
- * voxel
- * 不需要进行世界坐标转化，直接使用原始model，但是疑惑的是怎么使用上外参和内参
- *
- * @return int
- */
-int main() {
-  /** 生成需要的内外参，先用一个相机的来测试流程
-   *  旋转向量，在 solve pnp 中是 from the model coordinate system to the camera
-   * coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera to world，
-   * 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
-   * 负号是因为要反过来求变化方向
-   */
-  // front camera raw data
-  intrinsics_[0] =
-      glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0,
-                1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
-  quaternions_[0] = glm::quat(0.4998015430569128, -0.5030316162024876,
-                              0.4997798114386805, -0.49737083824542755);
-  translation_vectors_[0] =
-      glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
-  glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
-  t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
-    }
-  }
-  model_mat_[0][3][0] = t2_[0][0];
-  model_mat_[0][3][1] = t2_[0][1];
-  model_mat_[0][3][2] = t2_[0][2];
-  model_mat_[0][3][3] = 1.0f;
-  model_mat_[0] = glm::inverse(model_mat_[0]); // 到这里结果是完全一致的，是因为
-                                               // opencv 和 glm 主序不一样？
-  // model_mat_[0] = glm::transpose(model_mat_[0]);
-  std::cout << "wrc final model mat" << std::endl;
-  for (int i = 0; i < 4; ++i) {
-    for (int j = 0; j < 4; ++j) {
-      std::cout << model_mat_[0][i][j] << " ";
-    }
-  }
-
-  /* 3D point to 2d, Pinhole camera */
-
-  /* 生成立方体 */
-  {
-    auto depth = 30;
+/* 定义生成未知的方法 */
+void GenCubePosition(const std::string &cordinate_path, std::vector<glm::vec3> cube_positions) {
+  auto depth = 30;
     auto height = 100;
     auto width = 100;
     /* 加载 cube 坐标  */
@@ -240,7 +194,55 @@ int main() {
     for (auto &position : cube_positions_) {
       position *= voxel_size;
     }
+};
+
+/**
+ * @brief 绘制 Voxel + camera projection
+ * voxel
+ * 不需要进行世界坐标转化，直接使用原始model，但是疑惑的是怎么使用上外参和内参
+ *
+ * @return int
+ */
+int main() {
+  /** 生成需要的内外参，先用一个相机的来测试流程
+   *  旋转向量，在 solve pnp 中是 from the model coordinate system to the camera
+   * coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera to world，
+   * 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
+   * 负号是因为要反过来求变化方向
+   */
+  // front camera raw data
+  intrinsics_[0] =
+      glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0,
+                1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
+  quaternions_[0] = glm::quat(0.4998015430569128, -0.5030316162024876,
+                              0.4997798114386805, -0.49737083824542755);
+  translation_vectors_[0] =
+      glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
+  glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
+  t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
+    }
   }
+  model_mat_[0][3][0] = t2_[0][0];
+  model_mat_[0][3][1] = t2_[0][1];
+  model_mat_[0][3][2] = t2_[0][2];
+  model_mat_[0][3][3] = 1.0f;
+  model_mat_[0] = glm::inverse(model_mat_[0]); // 到这里结果是完全一致的，是因为
+                                               // opencv 和 glm 主序不一样？
+  // model_mat_[0] = glm::transpose(model_mat_[0]);
+  std::cout << "wrc final model mat" << std::endl;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      std::cout << model_mat_[0][i][j] << " ";
+    }
+  }
+
+  /* 3D point to 2d, Pinhole camera */
+
+  /* 生成立方体 */
+    GenCubePosition(cordinate_path,cube_positions_);
 
   /* 设置光源 */
   Light light;
@@ -255,7 +257,6 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
