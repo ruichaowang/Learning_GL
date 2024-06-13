@@ -15,11 +15,11 @@ uniform mat4 projection;
 uniform mat4 extrinsic_matrix;
 
 void main() {
-  FragPos = aPos + position;
+  FragPos = aPos + aInstancePos;
 
   TexCoords = aTexCoords;
 
   gl_Position = projection * view * vec4(FragPos, 1.0);
 
-  model_position = extrinsic_matrix * vec4(aPos, 1.0);
+  model_position = extrinsic_matrix * vec4(FragPos, 1.0);
 }

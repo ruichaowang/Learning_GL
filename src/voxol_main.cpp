@@ -331,6 +331,16 @@ int main() {
                           (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    unsigned int instanceVBO;
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, cube_positions_.size() * sizeof(glm::vec3), &cube_positions_[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribDivisor(3, 1);
+
+
     // second, configure the light's VAO (VBO stays the same; the vertices are
     // the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
@@ -419,10 +429,14 @@ int main() {
       /* render the cube */
       glBindVertexArray(cubeVAO);
       //绘制多次
-      for (unsigned int i = 0; i < cube_positions_.size(); i++) {
-        lightingShader.setVec3("position", cube_positions_[i]);    // 直接位移, 不旋转
-        glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
-      }
+    //   for (unsigned int i = 0; i < cube_positions_.size(); i++) {
+    //     lightingShader.setVec3("position", cube_positions_[i]);    // 直接位移, 不旋转
+    //     glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
+    //   }
+    
+    // instance 渲染
+      glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
     //绘制一次
     // lightingShader.setMat4("model", glm::mat4(1.0f));
