@@ -97,5 +97,7 @@
         "format": "cpp",
         "stdfloat": "cpp",
         "stop_token": "cpp"
-    }
+    },
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, BreakBeforeBraces: Attach }"
 }
+
