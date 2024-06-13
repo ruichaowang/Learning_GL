@@ -418,13 +418,16 @@ int main() {
 
       /* render the cube */
       glBindVertexArray(cubeVAO);
+      //绘制多次
       for (unsigned int i = 0; i < cube_positions_.size(); i++) {
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cube_positions_[i]); // 位移
-        lightingShader.setMat4("model", model);
-
+        lightingShader.setVec3("position", cube_positions_[i]);    // 直接位移, 不旋转
         glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
       }
+
+    //绘制一次
+    // lightingShader.setMat4("model", glm::mat4(1.0f));
+    // glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
+
 
       // also draw the lamp object
       lightCubeShader.use();
