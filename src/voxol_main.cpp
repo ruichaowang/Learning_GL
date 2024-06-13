@@ -135,65 +135,66 @@ std::array<glm::mat4, camera_count> model_mat_; //
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
 /* 定义生成未知的方法 */
-void GenCubePosition(const std::string &cordinate_path, std::vector<glm::vec3> cube_positions) {
+void GenCubePosition(const std::string &cordinate_path,
+                     std::vector<glm::vec3> cube_positions) {
   auto depth = 30;
-    auto height = 100;
-    auto width = 100;
-    /* 加载 cube 坐标  */
-    for (int z = 0; z < 8; ++z) {
-      const std::string filename = cordinate_path + std::to_string(z) + ".csv";
-      std::vector<std::vector<int>> data = read_csv(filename);
-      for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-          /* 添加地面 */
-          if (z == 0 || z == 1) {
-            glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-            cube_positions_.push_back(temp_positon);
-          }
+  auto height = 100;
+  auto width = 100;
+  /* 加载 cube 坐标  */
+  for (int z = 0; z < 8; ++z) {
+    const std::string filename = cordinate_path + std::to_string(z) + ".csv";
+    std::vector<std::vector<int>> data = read_csv(filename);
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        /* 添加地面 */
+        if (z == 0 || z == 1) {
+          glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+          cube_positions_.push_back(temp_positon);
+        }
 
-          if (y == 0 || y == 99 || x == 0 || x == 99) {
-            glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-            cube_positions_.push_back(temp_positon);
-          }
+        if (y == 0 || y == 99 || x == 0 || x == 99) {
+          glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+          cube_positions_.push_back(temp_positon);
+        }
 
-          /* 添加cube */
-          if (data[y][x] != 17) {
-            glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-            cube_positions_.push_back(temp_positon);
-          }
+        /* 添加cube */
+        if (data[y][x] != 17) {
+          glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+          cube_positions_.push_back(temp_positon);
         }
       }
     }
+  }
 
-    std::vector<glm::vec3> wallPositions;
-    // 生成四周墙壁
-    for (int z = 0; z < depth; ++z) {
-      for (int y = 0; y < height; ++y) {
-        // 左右墙壁
-        wallPositions.push_back(glm::vec3(0, y, z));
-        wallPositions.push_back(glm::vec3(width - 1, y, z));
-      }
-      for (int x = 0; x < width; ++x) {
-        // 前后墙壁
-        wallPositions.push_back(glm::vec3(x, 0, z));
-        wallPositions.push_back(glm::vec3(x, height - 1, z));
-      }
+  std::vector<glm::vec3> wallPositions;
+  // 生成四周墙壁
+  for (int z = 0; z < depth; ++z) {
+    for (int y = 0; y < height; ++y) {
+      // 左右墙壁
+      wallPositions.push_back(glm::vec3(0, y, z));
+      wallPositions.push_back(glm::vec3(width - 1, y, z));
     }
-    cube_positions_.insert(cube_positions_.end(), wallPositions.begin(),
-                           wallPositions.end());
+    for (int x = 0; x < width; ++x) {
+      // 前后墙壁
+      wallPositions.push_back(glm::vec3(x, 0, z));
+      wallPositions.push_back(glm::vec3(x, height - 1, z));
+    }
+  }
+  cube_positions_.insert(cube_positions_.end(), wallPositions.begin(),
+                         wallPositions.end());
 
-    // 移除重复的顶点
-    cube_positions_.erase(
-        std::unique(cube_positions_.begin(), cube_positions_.end()),
-        cube_positions_.end());
+  // 移除重复的顶点
+  cube_positions_.erase(
+      std::unique(cube_positions_.begin(), cube_positions_.end()),
+      cube_positions_.end());
 
-    /* cube 整体移动，以及转化到真实世界坐标 */
-    for (auto &position : cube_positions_) {
-      position -= offset;
-    }
-    for (auto &position : cube_positions_) {
-      position *= voxel_size;
-    }
+  /* cube 整体移动，以及转化到真实世界坐标 */
+  for (auto &position : cube_positions_) {
+    position -= offset;
+  }
+  for (auto &position : cube_positions_) {
+    position *= voxel_size;
+  }
 };
 
 /**
@@ -242,7 +243,7 @@ int main() {
   /* 3D point to 2d, Pinhole camera */
 
   /* 生成立方体 */
-    GenCubePosition(cordinate_path,cube_positions_);
+  GenCubePosition(cordinate_path, cube_positions_);
 
   /* 设置光源 */
   Light light;
