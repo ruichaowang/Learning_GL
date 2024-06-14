@@ -30,7 +30,7 @@ const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 50.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -73,7 +73,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
-glm::vec3 lightPos(0.0f, 0.0f, 2.0f); /* lighting */
+glm::vec3 lightPos(0.0f, 0.0f, 10.0f); /* lighting */
 glm::vec3 light_intensity(2.0f);
 glm::vec3 cube_offset =
     glm::vec3(-50.0f, -50.0f, 1.0f); // 把车挪到整个模型的中心
@@ -219,7 +219,6 @@ int main() {
      *
      */
 
-    // todo 我们验证一下外参的计算是否正确
     /* front camera raw data */
     intrinsics_[0] =
         glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0,
@@ -229,8 +228,9 @@ int main() {
     translation_vectors_[0] =
         glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
+    // todo 需要给旋转坐标变化坐标系，
     translation_vectors_[0] +=
-        glm::vec3(-50.0, -50.0, 0.0); // todo 偏移量是否正确？
+        glm::vec3(0.0, 0.0, 0.0); // todo 偏移量是否正确？
     glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
     t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
     for (int i = 0; i < 3; ++i) {
@@ -250,8 +250,6 @@ int main() {
     //       std::cout << model_mat_[0][i][j] << " ";
     //     }
     //   }
-
-    /* 3D point to 2d, Pinhole camera */
 
     /* 生成立方体 */
     GenCubePosition(cordinate_path, cube_positions_, cube_offset);
@@ -544,8 +542,8 @@ unsigned int loadTexture(char const *path) {
                      GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
