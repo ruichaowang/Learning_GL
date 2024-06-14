@@ -238,9 +238,9 @@ int main() {
         glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
     // 旋转坐标系
-    float angle_x_degrees = 0.0f;
+    float angle_x_degrees = 180.0f;
     float angle_y_degrees = 0.0f;
-    float angle_z_degrees = 0.0f;
+    float angle_z_degrees = -90.0f;
 
     float angle_x_radians = glm::radians(angle_x_degrees); // 转换为弧度
     float angle_y_radians = glm::radians(angle_y_degrees); // 转换为弧度
@@ -270,14 +270,15 @@ int main() {
 
     // todo 需要给旋转坐标变化坐标系，
     translation_vectors_[0] +=
-        glm::vec3(0.0, 0.0, 0.0); // todo 偏移量是否正确？
+        glm::vec3(0.0, 0.0, -2.0); // todo 偏移量是否正确？
     glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
 
     // todo 反转坐标？
     // rotation_matrix_c2w[0] = -rotation_matrix_c2w[0]; //反转轴
     // rotation_matrix_c2w[1] = -rotation_matrix_c2w[1]; //反转轴
 
-    t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
+    // t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
+    t2_[0] = translation_vectors_[0] * -rotation_matrix_c2w ;  //如果方向反过来呢？
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
