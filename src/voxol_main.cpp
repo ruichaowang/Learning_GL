@@ -1,5 +1,6 @@
 #include <glad/glad.h> //要优先于glfw3.h，否则编译不通过，原因未知
 #include <GLFW/glfw3.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -71,7 +72,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 
 glm::vec3 lightPos(0.0f, 0.0f, 2.0f); /* lighting */
 glm::vec3 light_intensity(2.0f);
-glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
+glm::vec3 cube_offset = glm::vec3(50.0f, 50.0f, 1.0f);
 const float voxel_size = 1.0f;
 const auto color_vs = "shaders/colors.vs";
 const auto color_fs = "shaders/colors.fs";
@@ -130,13 +131,13 @@ std::array<glm::mat3, camera_count> intrinsics_;
 std::array<glm::quat, camera_count> quaternions_;
 std::array<glm::vec3, camera_count> translation_vectors_;
 std::array<glm::vec3, camera_count> t2_;
-std::array<glm::mat4, camera_count> model_mat_; //
+std::array<glm::mat4, camera_count> model_mat_;
 
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
-/* 定义生成未知的方法 */
+/* 定义生成 cube 位置的方法， */
 void GenCubePosition(const std::string &cordinate_path,
-                     std::vector<glm::vec3> cube_positions) {
+                     std::vector<glm::vec3> cube_positions, glm::vec3 offset) {
   auto depth = 30;
   auto height = 100;
   auto width = 100;
@@ -220,6 +221,15 @@ int main() {
   translation_vectors_[0] =
       glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
   glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
+  std::cout << "rotation_matrix_c2w: " << rotation_matrix_c2w[0][0] << " "
+            << rotation_matrix_c2w[0][1] << " " << rotation_matrix_c2w[0][2]
+            << std::endl;
+  std::cout << "rotation_matrix_c2w: " << rotation_matrix_c2w[1][0] << " "
+            << rotation_matrix_c2w[1][1] << " " << rotation_matrix_c2w[1][2]
+            << std::endl;
+  std::cout << "rotation_matrix_c2w: " << rotation_matrix_c2w[2][0] << " "
+            << rotation_matrix_c2w[2][1] << " " << rotation_matrix_c2w[2][2]
+            << std::endl;
   t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
@@ -230,20 +240,21 @@ int main() {
   model_mat_[0][3][1] = t2_[0][1];
   model_mat_[0][3][2] = t2_[0][2];
   model_mat_[0][3][3] = 1.0f;
-  model_mat_[0] = glm::inverse(model_mat_[0]); // 到这里结果是完全一致的，是因为
-                                               // opencv 和 glm 主序不一样？
+  //   model_mat_[0] = glm::inverse(model_mat_[0]); //
+  //   到这里结果是完全一致的，是因为
+  // opencv 和 glm 主序不一样？
   // model_mat_[0] = glm::transpose(model_mat_[0]);
-  std::cout << "wrc final model mat" << std::endl;
-  for (int i = 0; i < 4; ++i) {
-    for (int j = 0; j < 4; ++j) {
-      std::cout << model_mat_[0][i][j] << " ";
-    }
-  }
+  //   std::cout << "wrc final model mat" << std::endl;
+  //   for (int i = 0; i < 4; ++i) {
+  //     for (int j = 0; j < 4; ++j) {
+  //       std::cout << model_mat_[0][i][j] << " ";
+  //     }
+  //   }
 
   /* 3D point to 2d, Pinhole camera */
 
   /* 生成立方体 */
-  GenCubePosition(cordinate_path, cube_positions_);
+  GenCubePosition(cordinate_path, cube_positions_, cube_offset);
 
   /* 设置光源 */
   Light light;
@@ -290,188 +301,192 @@ int main() {
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
 
-  if (1) {
-    // build and compile our shader zprogram
+  // build and compile our shader zprogram
 
-    // ------------------------------------
-    Shader lightingShader(color_vs, color_fs);
-    Shader lightCubeShader(light_cube_vs, light_cube_fs);
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
+  // ------------------------------------
+  Shader lightingShader(color_vs, color_fs);
+  Shader lightCubeShader(light_cube_vs, light_cube_fs);
+  // set up vertex data (and buffer(s)) and configure vertex attributes
+  // ------------------------------------------------------------------
 
-    /* 缩放顶点数据 */
-    float scaledVertices[sizeof(original_ertices) /
-                         sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
-    for (size_t i = 0; i < sizeof(original_ertices) / sizeof(float); i += 8) {
-      scaledVertices[i] = original_ertices[i] * voxel_size;         // x坐标
-      scaledVertices[i + 1] = original_ertices[i + 1] * voxel_size; // y坐标
-      scaledVertices[i + 2] = original_ertices[i + 2] * voxel_size; // z坐标
-      // 法线和纹理坐标保持不变
-      for (int j = 3; j < 8; ++j) {
-        scaledVertices[i + j] = original_ertices[i + j];
-      }
+  /* 缩放顶点数据 */
+  float scaledVertices[sizeof(original_ertices) /
+                       sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
+  for (size_t i = 0; i < sizeof(original_ertices) / sizeof(float); i += 8) {
+    scaledVertices[i] = original_ertices[i] * voxel_size;         // x坐标
+    scaledVertices[i + 1] = original_ertices[i + 1] * voxel_size; // y坐标
+    scaledVertices[i + 2] = original_ertices[i + 2] * voxel_size; // z坐标
+    // 法线和纹理坐标保持不变
+    for (int j = 3; j < 8; ++j) {
+      scaledVertices[i + j] = original_ertices[i + j];
     }
-
-    unsigned int VBO, cubeVAO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &VBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(scaledVertices), scaledVertices,
-                 GL_STATIC_DRAW);
-
-    glBindVertexArray(cubeVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    unsigned int instanceVBO;
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, cube_positions_.size() * sizeof(glm::vec3), &cube_positions_[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(3);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glVertexAttribDivisor(3, 1);
-
-
-    // second, configure the light's VAO (VBO stays the same; the vertices are
-    // the same for the light object which is also a 3D cube)
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
-
-    // we only need to bind to the VBO (to link it with glVertexAttribPointer),
-    // no need to fill it; the VBO's data already contains all we need (it's
-    // already bound, but we do it again for educational purposes)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // note that we update the lamp's position attribute's stride to reflect the
-    // updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-
-    /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */
-
-    unsigned int cam_front_tex = loadTexture(cam_front_path);
-
-    // shader configuration
-    lightingShader.use();
-    lightingShader.setInt("material.diffuse", 0);
-    // light properties
-    lightingShader.setVec3("light.ambient", light.ambient);
-    lightingShader.setVec3("light.diffuse", light.diffuse);
-    lightingShader.setVec3("light.specular", light.specular);
-    // material properties
-    lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-    lightingShader.setFloat("material.shininess", 64.0f);
-
-    // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window)) {
-      float currentFrame = static_cast<float>(glfwGetTime());
-      deltaTime = currentFrame - lastFrame;
-      lastFrame = currentFrame;
-      // -----
-      processInput(window);
-
-      // render
-      // ------
-      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      lightingShader.use();
-      lightingShader.setVec3("light.position", lightPos);
-      lightingShader.setVec3("viewPos", camera.Position);
-
-      /* 添加上相机内外参, 内参也确认ok */
-      lightingShader.setMat4("extrinsics", model_mat_[0]);
-      glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / image_width,
-                                         intrinsics_[0][1][1] / image_height);
-      glm::vec2 principal_point =
-          glm::vec2(intrinsics_[0][0][2] / image_width,
-                    intrinsics_[0][1][2] / image_height);
-      lightingShader.setVec2("focal_length", focal_length);
-      lightingShader.setVec2("principal_point", principal_point);
-
-      /* 测试一个点对应的uv,和 SVM 中一致, 所以莫非是坐标不对？ */
-      {
-        // glm::vec4 test_point = glm::vec4(100000.0f, 20000.0f,
-        // 10000.0f, 1.0f); glm::vec4 wpos4 =  model_mat_[0] * test_point;
-        // glm::vec2 xd1 = glm::vec2(wpos4.x / wpos4.z, wpos4.y / wpos4.z);
-        // glm::vec2 final_point = glm::vec2(focal_length.x * xd1.x +
-        // principal_point.x, focal_length.y * xd1.y + principal_point.y);
-        // std::cout << "final_point: " << final_point.x << " " << final_point.y
-        // << std::endl;   //这个是没有问题的，
-      }
-
-      // view/projection transformations
-      glm::mat4 projection =
-          glm::perspective(glm::radians(camera.Zoom),
-                           (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-      glm::mat4 view = camera.GetViewMatrix();
-      lightingShader.setMat4("projection", projection);
-      lightingShader.setMat4("view", view);
-
-      glm::mat4 model;
-
-      // bind diffuse map
-      lightingShader.setInt("material.diffuse", 0);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, cam_front_tex);
-
-      /* render the cube */
-      glBindVertexArray(cubeVAO);
-      //绘制多次
-    //   for (unsigned int i = 0; i < cube_positions_.size(); i++) {
-    //     lightingShader.setVec3("position", cube_positions_[i]);    // 直接位移, 不旋转
-    //     glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
-    //   }
-    
-    // instance 渲染
-      glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-    //绘制一次
-    // lightingShader.setMat4("model", glm::mat4(1.0f));
-    // glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
-
-
-      // also draw the lamp object
-      lightCubeShader.use();
-      lightCubeShader.setMat4("projection", projection);
-      lightCubeShader.setMat4("view", view);
-      model = glm::mat4(1.0f);
-      model = glm::translate(model, lightPos);
-      model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-      lightCubeShader.setMat4("model", model);
-
-      glBindVertexArray(lightCubeVAO);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-
-      // glfw: swap buffers and poll IO events (keys pressed/released, mouse
-      // moved etc.)
-      // -------------------------------------------------------------------------------
-      glfwSwapBuffers(window);
-      glfwPollEvents();
-    }
-
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
   }
+
+  unsigned int VBO, cubeVAO;
+  glGenVertexArrays(1, &cubeVAO);
+  glGenBuffers(1, &VBO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(scaledVertices), scaledVertices,
+               GL_STATIC_DRAW);
+
+  glBindVertexArray(cubeVAO);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  unsigned int instanceVBO;
+  glGenBuffers(1, &instanceVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+  glBufferData(GL_ARRAY_BUFFER, cube_positions_.size() * sizeof(glm::vec3),
+               &cube_positions_[0], GL_STATIC_DRAW);
+  glEnableVertexAttribArray(3);
+  glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glVertexAttribDivisor(3, 1);
+
+  // second, configure the light's VAO (VBO stays the same; the vertices are
+  // the same for the light object which is also a 3D cube)
+  unsigned int lightCubeVAO;
+  glGenVertexArrays(1, &lightCubeVAO);
+  glBindVertexArray(lightCubeVAO);
+
+  // we only need to bind to the VBO (to link it with glVertexAttribPointer),
+  // no need to fill it; the VBO's data already contains all we need (it's
+  // already bound, but we do it again for educational purposes)
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  // note that we update the lamp's position attribute's stride to reflect the
+  // updated buffer data
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+
+  /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */
+
+  unsigned int cam_front_tex = loadTexture(cam_front_path);
+
+  // shader configuration
+  lightingShader.use();
+  lightingShader.setInt("material.diffuse", 0);
+  // light properties
+  lightingShader.setVec3("light.ambient", light.ambient);
+  lightingShader.setVec3("light.diffuse", light.diffuse);
+  lightingShader.setVec3("light.specular", light.specular);
+
+  // render loop
+  // -----------
+  while (!glfwWindowShouldClose(window)) {
+    float currentFrame = static_cast<float>(glfwGetTime());
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+    // -----
+    processInput(window);
+
+    // render
+    // ------
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    lightingShader.use();
+    lightingShader.setVec3("light.position", lightPos);
+    lightingShader.setVec3("viewPos", camera.Position);
+
+    /* 添加上相机内外参, 内参也确认ok */
+    lightingShader.setMat4("extrinsics", model_mat_[0]);
+    std::cout << "model_mat: " << model_mat_[0][0][0] << " "
+              << model_mat_[0][0][1] << " " << model_mat_[0][0][2] << " "
+              << model_mat_[0][0][3] << std::endl;
+    std::cout << "model_mat: " << model_mat_[0][1][0] << " "
+              << model_mat_[0][1][1] << " " << model_mat_[0][1][2] << " "
+              << model_mat_[0][1][3] << std::endl;
+    std::cout << "model_mat: " << model_mat_[0][2][0] << " "
+              << model_mat_[0][2][1] << " " << model_mat_[0][2][2] << " "
+              << model_mat_[0][2][3] << std::endl;
+    std::cout << "model_mat: " << model_mat_[0][3][0] << " "
+              << model_mat_[0][3][1] << " " << model_mat_[0][3][2] << " "
+              << model_mat_[0][3][3] << std::endl;
+    glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / image_width,
+                                       intrinsics_[0][1][1] / image_height);
+    glm::vec2 principal_point = glm::vec2(intrinsics_[0][0][2] / image_width,
+                                          intrinsics_[0][1][2] / image_height);
+    std::cout << "focal_length: " << focal_length.x << " " << focal_length.y
+              << std::endl;
+    lightingShader.setVec2("focal_lengths", focal_length);
+    lightingShader.setVec2("principal_point", principal_point);
+
+    /* 测试一个点对应的uv,和 SVM 中一致, 所以莫非是坐标不对？ */
+    {
+      // glm::vec4 test_point = glm::vec4(100000.0f, 20000.0f,
+      // 10000.0f, 1.0f); glm::vec4 wpos4 =  model_mat_[0] * test_point;
+      // glm::vec2 xd1 = glm::vec2(wpos4.x / wpos4.z, wpos4.y / wpos4.z);
+      // glm::vec2 final_point = glm::vec2(focal_length.x * xd1.x +
+      // principal_point.x, focal_length.y * xd1.y + principal_point.y);
+      // std::cout << "final_point: " << final_point.x << " " << final_point.y
+      // << std::endl;   //这个是没有问题的，
+    }
+
+    // view/projection transformations
+    glm::mat4 projection =
+        glm::perspective(glm::radians(camera.Zoom),
+                         (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+    lightingShader.setMat4("projection", projection);
+    lightingShader.setMat4("view", view);
+
+    glm::mat4 model;
+
+    // bind diffuse map
+    lightingShader.setInt("material.diffuse", 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cam_front_tex);
+
+    /* render the cube */
+    if (0) {
+      /* 直接绘制多次 */
+      glBindVertexArray(cubeVAO);
+      for (unsigned int i = 0; i < cube_positions_.size(); i++) {
+        lightingShader.setVec3("position",
+                               cube_positions_[i]); // 直接位移, 不旋转
+        glDrawArrays(GL_TRIANGLES, 0, 36);          // 绘制立方体
+      }
+      // 绘制一次
+      //  lightingShader.setMat4("model", glm::mat4(1.0f));
+      //  glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
+    } else {
+      /* instance 渲染 */
+      glBindVertexArray(cubeVAO);
+      glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+    }
+
+    /* draw the a smaller cube lamp object */
+    lightCubeShader.use();
+    lightCubeShader.setMat4("projection", projection);
+    lightCubeShader.setMat4("view", view);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, lightPos);
+    model = glm::scale(model, glm::vec3(0.2f));
+    lightCubeShader.setMat4("model", model);
+    glBindVertexArray(lightCubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse
+    // moved etc.)
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  // optional: de-allocate all resources once they've outlived their purpose:
+  glDeleteVertexArrays(1, &cubeVAO);
+  glDeleteVertexArrays(1, &lightCubeVAO);
+  glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &instanceVBO);
+
+  glfwTerminate(); // clearing all previously allocated GLFW resources.
+
   return 0;
 }
 
