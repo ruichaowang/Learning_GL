@@ -25,9 +25,7 @@ void main() {
     vec2 viewp = vec2(model_position.x/pz, model_position.y/pz);
     vec2 final_point = viewp * focal_lengths + cammera_principal_point;
     vec3 oclr = texture(material.diffuse, final_point).rgb;
-    FragColor = oclr;
-
-    // FragColor = vec3(cammera_principal_point,0.0);  //测试参数是否正确
+    // FragColor = oclr;
 
   //   FragColor = vec4(0.0, 1.0, 1.0); // 青色 (Cyan)，无光照效果,
   // 但是轮廓没有了，
