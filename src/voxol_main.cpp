@@ -30,7 +30,8 @@ const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f),glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, .0f);
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f,
+              -.0f);
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -73,11 +74,15 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
-glm::vec3 lightPos(0.0f, 10.0f, 5.0f); /* lighting， 我们认为y轴正向为我们需要的方向放置一个标志 */
+/* lighting， 我们认为y轴正向为我们需要的方向放置一个标志 */
+glm::vec3 lightPos(0.0f, 10.0f, 5.0f);
 glm::vec3 light_intensity(2.0f);
-glm::vec3 cube_offset =
-    glm::vec3(-50.0f, -50.0f, 1.0f); // 把车挪到整个模型的中心
-const float voxel_size = 1.0f;
+/* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
+const auto cube_offset = glm::vec3(-50.0f, -50.0f, -2.0f);
+/* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
+const auto ExtrinsicOffset = glm::vec3(0.0, 1.5, 2.5);
+/* 这个数据是模型参数 */
+const float voxel_size = 1.024f;
 const auto color_vs = "shaders/colors.vs";
 const auto color_fs = "shaders/colors.fs";
 const auto light_cube_vs = "shaders/light_cube.vs";
@@ -139,31 +144,41 @@ std::array<glm::mat4, camera_count> model_mat_;
 
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
-/* 定义生成 cube 位置的方法， */
+
+/**
+ * @brief 定义生成 cube 位置的方法
+ * 省略了前两个的参数，只有2～6
+ * 当前只做了地面和墙，地面高度基准可能不对，
+ *
+ * @param cordinate_path 模型加载位置
+ * @param cube_positions 输出的立方体位置
+ * @param offset 基准值，把车移动到中心当前是
+ */
 void GenCubePosition(const std::string &cordinate_path,
                      std::vector<glm::vec3> cube_positions, glm::vec3 offset) {
     auto depth = 30;
     auto height = 100;
     auto width = 100;
-    /* 加载 cube 坐标  */
-    for (int z = 0; z < 8; ++z) {
+    /* 加载 cube 坐标,  */
+    for (int z = 2; z < 8; ++z) {
         const std::string filename =
             cordinate_path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                /* 添加地面 */
-                if (z == 0 || z == 1) {
+                /* 填充地面 */
+                if (z == 2) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                     cube_positions_.push_back(temp_positon);
                 }
 
+                /* 添加边缘和立面 */
                 if (y == 0 || y == 99 || x == 0 || x == 99) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                     cube_positions_.push_back(temp_positon);
                 }
 
-                /* 添加cube */
+                /* 添加 voxels */
                 if (data[y][x] != 17) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                     cube_positions_.push_back(temp_positon);
@@ -202,13 +217,18 @@ void GenCubePosition(const std::string &cordinate_path,
         position *= voxel_size;
     }
 
-
-    /* cube z 轴旋转 */
-    float rotationAngleDegrees = 90.0f;
+    /* cube z 轴旋转 -90 度 */
+    float rotationAngleDegrees = -90.0f;
     float rotationAngleRadians = glm::radians(rotationAngleDegrees);
-    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 rotationMatrix = glm::rotate(
+        glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     for (auto &position : cube_positions_) {
         position = glm::vec3(rotationMatrix * glm::vec4(position, 1.0f));
+    }
+
+    /* 对y轴反转 */
+    for (auto &position : cube_positions_) {
+        position.y = -position.y;
     }
 };
 
@@ -237,10 +257,10 @@ int main() {
     translation_vectors_[0] =
         glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
-    // 旋转坐标系
-    float angle_x_degrees = 180.0f;
+    /* 旋转坐标系，完全照搬 svm 的模拟效果，看一下数据结果 */
+    float angle_x_degrees = 0.0f;
     float angle_y_degrees = 0.0f;
-    float angle_z_degrees = -90.0f;
+    float angle_z_degrees = 90.0f;
 
     float angle_x_radians = glm::radians(angle_x_degrees); // 转换为弧度
     float angle_y_radians = glm::radians(angle_y_degrees); // 转换为弧度
@@ -256,29 +276,15 @@ int main() {
     glm::quat rotation_y = glm::angleAxis(angle_y_radians, axis_y);
     glm::quat rotation_z = glm::angleAxis(angle_z_radians, axis_z);
 
-    //是否坐标轴相反
-    // rotation_x = glm::conjugate(rotation_x);
-    // rotation_y = glm::conjugate(rotation_y);
-    //rotation_z = glm::conjugate(rotation_z);
-
     // 按旋转顺序合成四元数
     glm::quat rotation_final = rotation_z * rotation_y * rotation_x;
 
     // 应用到初始旋转
     quaternions_[0] = rotation_final * quaternions_[0];
-    
-
-    // todo 需要给旋转坐标变化坐标系，
-    translation_vectors_[0] +=
-        glm::vec3(0.0, 0.0, -2.0); // todo 偏移量是否正确？
+    translation_vectors_[0] += ExtrinsicOffset;
     glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
 
-    // todo 反转坐标？
-    // rotation_matrix_c2w[0] = -rotation_matrix_c2w[0]; //反转轴
-    // rotation_matrix_c2w[1] = -rotation_matrix_c2w[1]; //反转轴
-
-    // t2_[0] = -rotation_matrix_c2w * translation_vectors_[0];
-    t2_[0] = translation_vectors_[0] * -rotation_matrix_c2w ;  //如果方向反过来呢？
+    t2_[0] = rotation_final * translation_vectors_[0];
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
@@ -290,10 +296,7 @@ int main() {
     model_mat_[0][3][3] = 1.0f;
     model_mat_[0] = glm::inverse(model_mat_[0]);
 
-
-     //  todo 是否是主序列替换？
-    //   model_mat_[0] = glm::transpose(model_mat_[0]);
-
+    camera.Position = t2_[0];
 
     /* 生成立方体 */
     GenCubePosition(cordinate_path, cube_positions_, cube_offset);
@@ -459,8 +462,6 @@ int main() {
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        glm::mat4 model;
-
         // bind diffuse map
         lightingShader.setInt("material.diffuse", 0);
         glActiveTexture(GL_TEXTURE0);
@@ -471,9 +472,8 @@ int main() {
             /* 直接绘制多次 */
             glBindVertexArray(cubeVAO);
             for (unsigned int i = 0; i < cube_positions_.size(); i++) {
-                lightingShader.setVec3("position",
-                                       cube_positions_[i]); // 直接位移, 不旋转
-                glDrawArrays(GL_TRIANGLES, 0, 36);          // 绘制立方体
+                lightingShader.setVec3("position", cube_positions_[i]);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
             }
             // 绘制一次
             //  lightingShader.setMat4("model", glm::mat4(1.0f));
@@ -488,6 +488,7 @@ int main() {
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
+        glm::mat4 model;
         model = glm::mat4(1.0f);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
@@ -540,7 +541,9 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+/* reversed since y-coordinates go from bottom to top */
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
+    // std::cout << "x,y = " << xposIn << "," << yposIn << std::endl;
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -551,8 +554,7 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
     }
 
     float xoffset = xpos - lastX;
-    float yoffset =
-        lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
 

@@ -18,7 +18,7 @@ enum Camera_Movement {
 // Default camera values
 const float YAW         = -90.0f;
 const float PITCH       =  0.0f;
-const float SPEED       =  50.0f;
+const float SPEED       =  5.0f;
 const float SENSITIVITY =  0.2f;
 const float ZOOM        =  45.0f;
 
@@ -124,8 +124,17 @@ private:
         front.y = sin(glm::radians(Pitch));
         front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         Front = glm::normalize(front);
+
+        // 防止万向节锁的微小偏移量
+        if (Front == WorldUp) {
+            Front += 0.001f;
+        } else if (Front == -WorldUp) {
+            Front -= 0.001f;
+        }
+
         // also re-calculate the Right and Up vector
-        Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+        Right = glm::normalize(glm::cross(Front, WorldUp)); // 010 为worldup
+        // Right = glm::normalize(glm::cross(WorldUp, Front)); // 001 为world up
         Up    = glm::normalize(glm::cross(Right, Front));
     }
 };
