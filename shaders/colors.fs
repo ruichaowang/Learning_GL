@@ -16,9 +16,12 @@ void main() {
     if (model_position.z < 0.0) {
         discard;
     }
-
     vec2 viewp = vec2(model_position.x/pz, model_position.y/pz);
     vec2 final_point = viewp * focal_lengths + cammera_principal_point;
+    if (final_point.x < 0 || final_point.x > 1 || final_point.y < 0 || final_point.y > 1) {
+         discard;
+    }
+
     FragColor = texture(camera_texture, final_point).rgb;
     // FragColor = texture(material.diffuse, TexCoords).rgb;  // 此行为测试使用
 }

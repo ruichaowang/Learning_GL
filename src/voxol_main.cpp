@@ -98,28 +98,47 @@ const auto cam_front_path =
 const auto cam_back_path =
     "assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_BACK__1538984245437525.jpg";
-const auto cam_front_left_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT_LEFT__1538984245404844.jpg";
-const auto cam_front_right_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
+const auto cam_front_left_path =
+    "assets/camera/"
+    "n015-2018-10-08-15-36-50+0800__CAM_FRONT_LEFT__1538984245404844.jpg";
+const auto cam_front_right_path =
+    "assets/camera/"
+    "n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
 
-const auto intrinsics_front = glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0,
-                  1266.417203046554, 491.50706579294757, 0.0, 0.0, 1.0);
-const auto quaternion_front = glm::quat(0.4998015430569128, -0.5030316162024876,
-                                0.4997798114386805, -0.49737083824542755);
-const auto translation_vectors_front = glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
+const auto intrinsics_front =
+    glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554,
+              491.50706579294757, 0.0, 0.0, 1.0);
+const auto quaternion_front =
+    glm::quat(0.4998015430569128, -0.5030316162024876, 0.4997798114386805,
+              -0.49737083824542755);
+const auto translation_vectors_front =
+    glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
-const auto intrinsics_rear = glm::mat3(809.2209905677063, 0.0, 829.2196003259838, 0.0,
-                  809.2209905677063, 481.77842384512485, 0.0, 0.0, 1.0);
+const auto intrinsics_rear =
+    glm::mat3(809.2209905677063, 0.0, 829.2196003259838, 0.0, 809.2209905677063,
+              481.77842384512485, 0.0, 0.0, 1.0);
 const auto quaternion_rear = glm::quat(0.5037872666382278, -0.49740249788611096,
-                                -0.4941850223835201, 0.5045496097725578);
-const auto translation_vectors_rear = glm::vec3(0.0283260309358, 0.00345136761476, 1.57910346144);
+                                       -0.4941850223835201, 0.5045496097725578);
+const auto translation_vectors_rear =
+    glm::vec3(0.0283260309358, 0.00345136761476, 1.57910346144);
 
-const auto intrinsics_front_left = glm::mat3(1272.5979470598488, 0.0, 826.6154927353808,0.0, 1272.5979470598488, 479.75165386361925,0.0, 0.0, 1.0);
-const auto quaternion_front_left = glm::quat(0.6757265034669446, -0.6736266522251881, 0.21214015046209478, -0.21122827103904068);
-const auto translation_vectors_front_left = glm::vec3(1.52387798135, 0.494631336551, 1.50932822144);
+const auto intrinsics_front_left =
+    glm::mat3(1272.5979470598488, 0.0, 826.6154927353808, 0.0,
+              1272.5979470598488, 479.75165386361925, 0.0, 0.0, 1.0);
+const auto quaternion_front_left =
+    glm::quat(0.6757265034669446, -0.6736266522251881, 0.21214015046209478,
+              -0.21122827103904068);
+const auto translation_vectors_front_left =
+    glm::vec3(1.52387798135, 0.494631336551, 1.50932822144);
 
-const auto intrinsics_front_right = glm::mat3(1260.8474446004698, 0.0, 807.968244525554, 0.0, 1260.8474446004698, 495.3344268742088,0.0, 0.0, 1.0);
-const auto quaternion_front_right = glm::quat(0.2060347966337182, -0.2026940577919598, 0.6824507824531167, -0.6713610884174485);
-const auto translation_vectors_front_right = glm::vec3(1.5508477543, -0.493404796419, 1.49574800619);
+const auto intrinsics_front_right =
+    glm::mat3(1260.8474446004698, 0.0, 807.968244525554, 0.0,
+              1260.8474446004698, 495.3344268742088, 0.0, 0.0, 1.0);
+const auto quaternion_front_right =
+    glm::quat(0.2060347966337182, -0.2026940577919598, 0.6824507824531167,
+              -0.6713610884174485);
+const auto translation_vectors_front_right =
+    glm::vec3(1.5508477543, -0.493404796419, 1.49574800619);
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -167,7 +186,7 @@ std::array<glm::quat, camera_count> quaternions_;
 std::array<glm::vec3, camera_count> translation_vectors_;
 std::array<glm::vec3, camera_count> t2_;
 std::array<glm::mat4, camera_count> model_mat_;
- 
+
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
 
@@ -331,7 +350,7 @@ int main() {
     intrinsics_[3] = intrinsics_front_right;
     quaternions_[3] = quaternion_front_right;
     translation_vectors_[3] = translation_vectors_front_right;
-    
+
     for (auto i = 0; i < 4; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
                          model_mat_[i], t2_[i], ExtrinsicOffset);
@@ -487,9 +506,8 @@ int main() {
         lightingShader.setVec3("viewPos", camera.Position);
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
-        glm::vec2 focal_length =
-            glm::vec2(intrinsics_[0][0][0] / image_width,
-                      intrinsics_[0][1][1] / image_height);
+        glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / image_width,
+                                           intrinsics_[0][1][1] / image_height);
         glm::vec2 principal_point =
             glm::vec2(intrinsics_[0][0][2] / image_width,
                       intrinsics_[0][1][2] / image_height);
@@ -506,41 +524,41 @@ int main() {
         lightingShader.setMat4("view", view);
 
         /* render the cube */
+        /* instance rendering */
+        lightingShader.setInt("camera_texture", 0);
+        glActiveTexture(GL_TEXTURE0);
+
+        glBindTexture(GL_TEXTURE_2D, cam_front_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[0]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+        glBindTexture(GL_TEXTURE_2D, cam_back_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+        glBindTexture(GL_TEXTURE_2D, cam_front_left_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[2]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+        glBindTexture(GL_TEXTURE_2D, cam_front_right_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[3]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
         if (0) {
+            /* 绘制一次 */
+            lightingShader.setMat4("model", glm::mat4(1.0f));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
             /* 直接绘制多次 */
             glBindVertexArray(cubeVAO);
             for (unsigned int i = 0; i < cube_positions_.size(); i++) {
                 lightingShader.setVec3("position", cube_positions_[i]);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
-            // 绘制一次
-            //  lightingShader.setMat4("model", glm::mat4(1.0f));
-            //  glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
-        } else {
-            /* instance 渲染 */
-            lightingShader.setInt("camera_texture", 0);
-            glActiveTexture(GL_TEXTURE0);
-
-
-            glBindTexture(GL_TEXTURE_2D, cam_front_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[0]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_back_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_front_left_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[2]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_front_right_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[3]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
         }
 
         /* draw the a smaller cube lamp object */
