@@ -31,7 +31,7 @@ const unsigned int SCR_HEIGHT = 1080;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f,
-              -.0f);
+              89.0f);
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -92,6 +92,9 @@ const auto cordinate_path = "assets/cordinate/slice_";
 const auto cam_front_path =
     "assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
+const auto cam_back_path =
+    "assets/camera/"
+    "n015-2018-10-08-15-36-50+0800__CAM_BACK__1538984245437525.jpg";
 const auto image_width = 1600.0;
 const auto image_height = 900.0;
 
@@ -233,6 +236,46 @@ void GenCubePosition(const std::string &cordinate_path,
 };
 
 /**
+ * @brief 生成外参 modelmat 的方法
+ *
+ */
+void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
+                      glm::mat4 &model_mat, glm::vec3 &t2_,
+                      const glm::vec3 &ExtrinsicOffset) {
+    glm::quat rotation_final;
+    {
+        float angle_x_degrees = 0.0f;
+        float angle_y_degrees = 0.0f;
+        float angle_z_degrees = 90.0f;
+
+        glm::quat rotation_x =
+            glm::angleAxis(glm::radians(angle_x_degrees), glm::vec3(1, 0, 0));
+        glm::quat rotation_y =
+            glm::angleAxis(glm::radians(angle_y_degrees), glm::vec3(0, 1, 0));
+        glm::quat rotation_z =
+            glm::angleAxis(glm::radians(angle_z_degrees), glm::vec3(0, 0, 1));
+
+        rotation_final = rotation_z * rotation_y * rotation_x;
+    }
+
+    quaternion = rotation_final * quaternion;
+    translationVector += ExtrinsicOffset;
+    glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternion);
+    t2_ = rotation_final * translationVector;
+
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            model_mat[i][j] = rotation_matrix_c2w[i][j];
+        }
+    }
+    model_mat[3][0] = t2_[0];
+    model_mat[3][1] = t2_[1];
+    model_mat[3][2] = t2_[2];
+    model_mat[3][3] = 1.0f;
+    model_mat = glm::inverse(model_mat);
+}
+
+/**
  * @brief 绘制 Voxel + camera projection
  * voxel
  * 不需要进行世界坐标转化，直接使用原始model，但是疑惑的是怎么使用上外参和内参
@@ -257,44 +300,45 @@ int main() {
     translation_vectors_[0] =
         glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
 
+    /* rear camera raw data */
+    intrinsics_[1] =
+        glm::mat3(809.2209905677063, 0.0, 829.2196003259838, 0.0,
+                  809.2209905677063, 481.77842384512485, 0.0, 0.0, 1.0);
+    quaternions_[1] = glm::quat(0.5037872666382278, -0.49740249788611096,
+                                -0.4941850223835201, 0.5045496097725578);
+    translation_vectors_[1] =
+        glm::vec3(0.0283260309358, 0.00345136761476, 1.57910346144);
+
     /* 旋转坐标系，完全照搬 svm 的模拟效果，看一下数据结果 */
-    float angle_x_degrees = 0.0f;
-    float angle_y_degrees = 0.0f;
-    float angle_z_degrees = 90.0f;
+    glm::quat rotation_final;
+    {
+        float angle_x_degrees = 0.0f;
+        float angle_y_degrees = 0.0f;
+        float angle_z_degrees = 90.0f;
 
-    float angle_x_radians = glm::radians(angle_x_degrees); // 转换为弧度
-    float angle_y_radians = glm::radians(angle_y_degrees); // 转换为弧度
-    float angle_z_radians = glm::radians(angle_z_degrees); // 转换为弧度
+        float angle_x_radians = glm::radians(angle_x_degrees); // 转换为弧度
+        float angle_y_radians = glm::radians(angle_y_degrees); // 转换为弧度
+        float angle_z_radians = glm::radians(angle_z_degrees); // 转换为弧度
 
-    // 定义旋转轴
-    glm::vec3 axis_x = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 axis_y = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 axis_z = glm::vec3(0.0f, 0.0f, 1.0f);
+        // 定义旋转轴
+        glm::vec3 axis_x = glm::vec3(1.0f, 0.0f, 0.0f);
+        glm::vec3 axis_y = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 axis_z = glm::vec3(0.0f, 0.0f, 1.0f);
 
-    // 创建各轴旋转的四元数
-    glm::quat rotation_x = glm::angleAxis(angle_x_radians, axis_x);
-    glm::quat rotation_y = glm::angleAxis(angle_y_radians, axis_y);
-    glm::quat rotation_z = glm::angleAxis(angle_z_radians, axis_z);
+        // 创建各轴旋转的四元数
+        glm::quat rotation_x = glm::angleAxis(angle_x_radians, axis_x);
+        glm::quat rotation_y = glm::angleAxis(angle_y_radians, axis_y);
+        glm::quat rotation_z = glm::angleAxis(angle_z_radians, axis_z);
 
-    // 按旋转顺序合成四元数
-    glm::quat rotation_final = rotation_z * rotation_y * rotation_x;
-
-    // 应用到初始旋转
-    quaternions_[0] = rotation_final * quaternions_[0];
-    translation_vectors_[0] += ExtrinsicOffset;
-    glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternions_[0]);
-
-    t2_[0] = rotation_final * translation_vectors_[0];
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            model_mat_[0][i][j] = rotation_matrix_c2w[i][j];
-        }
+        // 按旋转顺序合成四元数
+        rotation_final = rotation_z * rotation_y * rotation_x;
     }
-    model_mat_[0][3][0] = t2_[0][0];
-    model_mat_[0][3][1] = t2_[0][1];
-    model_mat_[0][3][2] = t2_[0][2];
-    model_mat_[0][3][3] = 1.0f;
-    model_mat_[0] = glm::inverse(model_mat_[0]);
+
+    /* 这个函数哪里有错误 */
+    for (auto i = 0; i < 2; i++) {
+        GenerateModelMat(quaternions_[i], translation_vectors_[i],
+                         model_mat_[i], t2_[i], ExtrinsicOffset);
+    }
 
     camera.Position = t2_[0];
 
@@ -414,12 +458,12 @@ int main() {
     glEnableVertexAttribArray(0);
 
     /* load textures, 但是映射方案需要修改, 它也不需要光照反射的资源 */
-
     unsigned int cam_front_tex = loadTexture(cam_front_path);
+    unsigned int cam_back_tex = loadTexture(cam_back_path);
 
     // shader configuration
     lightingShader.use();
-    lightingShader.setInt("material.diffuse", 0);
+    lightingShader.setInt("camera_texture", 0);
     // light properties
     lightingShader.setVec3("light.ambient", light.ambient);
     lightingShader.setVec3("light.diffuse", light.diffuse);
@@ -450,7 +494,7 @@ int main() {
         glm::vec2 principal_point =
             glm::vec2(intrinsics_[0][0][2] / image_width,
                       intrinsics_[0][1][2] / image_height); // 0.510167 0.546119
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[0]);
+
         lightingShader.setVec2("focal_lengths", focal_length);
         lightingShader.setVec2("cammera_principal_point", principal_point);
 
@@ -461,11 +505,6 @@ int main() {
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
-
-        // bind diffuse map
-        lightingShader.setInt("material.diffuse", 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cam_front_tex);
 
         /* render the cube */
         if (0) {
@@ -480,6 +519,15 @@ int main() {
             //  glDrawArrays(GL_TRIANGLES, 0, 36); // 绘制立方体
         } else {
             /* instance 渲染 */
+            lightingShader.setInt("camera_texture", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, cam_front_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[0]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+            glBindTexture(GL_TEXTURE_2D, cam_back_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
             glBindVertexArray(cubeVAO);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
         }
@@ -543,7 +591,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 
 /* reversed since y-coordinates go from bottom to top */
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
-    // std::cout << "x,y = " << xposIn << "," << yposIn << std::endl;
+    std::cout << "x,y = " << xposIn << "," << yposIn << std::endl;
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 

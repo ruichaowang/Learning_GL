@@ -16,7 +16,7 @@ enum Camera_Movement {
 };
 
 // Default camera values
-const float YAW         = -90.0f;
+const float YAW         = -0.0f;
 const float PITCH       =  0.0f;
 const float SPEED       =  5.0f;
 const float SENSITIVITY =  0.2f;
@@ -42,7 +42,7 @@ public:
     float Zoom;
 
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
@@ -125,12 +125,6 @@ private:
         front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         Front = glm::normalize(front);
 
-        // 防止万向节锁的微小偏移量
-        if (Front == WorldUp) {
-            Front += 0.001f;
-        } else if (Front == -WorldUp) {
-            Front -= 0.001f;
-        }
 
         // also re-calculate the Right and Up vector
         Right = glm::normalize(glm::cross(Front, WorldUp)); // 010 为worldup
