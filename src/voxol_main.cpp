@@ -104,6 +104,8 @@ const auto cam_front_left_path =
 const auto cam_front_right_path =
     "assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
+const auto cam_back_left_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_BACK_LEFT__1538984245447423.jpg";
+const auto cam_back_right_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_BACK_RIGHT__1538984245427893.jpg";
 
 const auto intrinsics_front =
     glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554,
@@ -139,6 +141,23 @@ const auto quaternion_front_right =
               -0.6713610884174485);
 const auto translation_vectors_front_right =
     glm::vec3(1.5508477543, -0.493404796419, 1.49574800619);
+
+const auto intrinsics_back_left =
+    glm::mat3(1256.7414812095406, 0.0, 792.1125740759628,
+              0.0, 1256.7414812095406, 492.7757465151356,0.0, 0.0, 1.0);
+const auto quaternion_back_left =
+    glm::quat(0.6924185592174665, -0.7031619420114925, -0.11648342771943819, 0.11203317912370753);
+const auto translation_vectors_back_left =
+    glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
+
+const auto intrinsics_back_right =
+    glm::mat3(1259.5137405846733, 0.0, 807.2529053838625,0.0, 1259.5137405846733, 501.19579884916527,0.0, 0.0, 1.0);
+const auto quaternion_back_right =
+    glm::quat(0.12280980120078765, -0.132400842670559, -0.7004305821388234, 0.690496031265798);
+const auto translation_vectors_back_right =
+    glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
+
+
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -351,7 +370,15 @@ int main() {
     quaternions_[3] = quaternion_front_right;
     translation_vectors_[3] = translation_vectors_front_right;
 
-    for (auto i = 0; i < 4; i++) {
+    intrinsics_[4] = intrinsics_back_left;
+    quaternions_[4] = quaternion_back_left;
+    translation_vectors_[4] = translation_vectors_back_left;
+
+    intrinsics_[5] = intrinsics_back_right;
+    quaternions_[5] = quaternion_back_right;
+    translation_vectors_[5] = translation_vectors_back_right;
+
+    for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
                          model_mat_[i], t2_[i], ExtrinsicOffset);
     }
@@ -478,6 +505,8 @@ int main() {
     unsigned int cam_back_tex = loadTexture(cam_back_path);
     unsigned int cam_front_left_tex = loadTexture(cam_front_left_path);
     unsigned int cam_front_right_tex = loadTexture(cam_front_right_path);
+    unsigned int cam_back_left_tex = loadTexture(cam_back_left_path);
+    unsigned int cam_back_right_tex = loadTexture(cam_back_right_path);
 
     // shader configuration
     lightingShader.use();
@@ -523,8 +552,7 @@ int main() {
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        /* render the cube */
-        /* instance rendering */
+        /* 实例渲染，instance rendering */
         lightingShader.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
 
@@ -548,6 +576,18 @@ int main() {
         glBindVertexArray(cubeVAO);
         glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
+        glBindTexture(GL_TEXTURE_2D, cam_back_left_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[4]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+        glBindTexture(GL_TEXTURE_2D, cam_back_right_tex);
+        lightingShader.setMat4("extrinsic_matrix", model_mat_[5]);
+        glBindVertexArray(cubeVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+
+
+        /* 实例渲染结束 */
         if (0) {
             /* 绘制一次 */
             lightingShader.setMat4("model", glm::mat4(1.0f));
@@ -620,7 +660,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 
 /* reversed since y-coordinates go from bottom to top */
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
-    std::cout << "x,y = " << xposIn << "," << yposIn << std::endl;
+    // std::cout << "x,y = " << xposIn << "," << yposIn << std::endl;
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
