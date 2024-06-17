@@ -74,6 +74,11 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
+/* 这个数据是模型参数 */
+const float voxel_size = 1.024f;
+const auto image_width = 1600.0;
+const auto image_height = 900.0;
+
 /* lighting， 我们认为y轴正向为我们需要的方向放置一个标志 */
 glm::vec3 lightPos(0.0f, 10.0f, 5.0f);
 glm::vec3 light_intensity(2.0f);
@@ -81,10 +86,6 @@ glm::vec3 light_intensity(2.0f);
 const auto cube_offset = glm::vec3(-50.0f, -50.0f, -2.0f);
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
 const auto ExtrinsicOffset = glm::vec3(0.0, 1.5, 2.5);
-/* 这个数据是模型参数 */
-const float voxel_size = 1.024f;
-const auto image_width = 1600.0;
-const auto image_height = 900.0;
 
 const auto color_vs = "shaders/colors.vs";
 const auto color_fs = "shaders/colors.fs";
@@ -104,8 +105,12 @@ const auto cam_front_left_path =
 const auto cam_front_right_path =
     "assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
-const auto cam_back_left_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_BACK_LEFT__1538984245447423.jpg";
-const auto cam_back_right_path = "assets/camera/n015-2018-10-08-15-36-50+0800__CAM_BACK_RIGHT__1538984245427893.jpg";
+const auto cam_back_left_path =
+    "assets/camera/"
+    "n015-2018-10-08-15-36-50+0800__CAM_BACK_LEFT__1538984245447423.jpg";
+const auto cam_back_right_path =
+    "assets/camera/"
+    "n015-2018-10-08-15-36-50+0800__CAM_BACK_RIGHT__1538984245427893.jpg";
 
 const auto intrinsics_front =
     glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554,
@@ -143,21 +148,22 @@ const auto translation_vectors_front_right =
     glm::vec3(1.5508477543, -0.493404796419, 1.49574800619);
 
 const auto intrinsics_back_left =
-    glm::mat3(1256.7414812095406, 0.0, 792.1125740759628,
-              0.0, 1256.7414812095406, 492.7757465151356,0.0, 0.0, 1.0);
+    glm::mat3(1256.7414812095406, 0.0, 792.1125740759628, 0.0,
+              1256.7414812095406, 492.7757465151356, 0.0, 0.0, 1.0);
 const auto quaternion_back_left =
-    glm::quat(0.6924185592174665, -0.7031619420114925, -0.11648342771943819, 0.11203317912370753);
+    glm::quat(0.6924185592174665, -0.7031619420114925, -0.11648342771943819,
+              0.11203317912370753);
 const auto translation_vectors_back_left =
     glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
 
 const auto intrinsics_back_right =
-    glm::mat3(1259.5137405846733, 0.0, 807.2529053838625,0.0, 1259.5137405846733, 501.19579884916527,0.0, 0.0, 1.0);
+    glm::mat3(1259.5137405846733, 0.0, 807.2529053838625, 0.0,
+              1259.5137405846733, 501.19579884916527, 0.0, 0.0, 1.0);
 const auto quaternion_back_right =
-    glm::quat(0.12280980120078765, -0.132400842670559, -0.7004305821388234, 0.690496031265798);
+    glm::quat(0.12280980120078765, -0.132400842670559, -0.7004305821388234,
+              0.690496031265798);
 const auto translation_vectors_back_right =
     glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
-
-
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -200,9 +206,16 @@ const float original_ertices[] = {
 
 /* 内外参部分 */
 const int camera_count = 6;
-std::array<glm::mat3, camera_count> intrinsics_;
-std::array<glm::quat, camera_count> quaternions_;
-std::array<glm::vec3, camera_count> translation_vectors_;
+std::array<glm::mat3, camera_count> intrinsics_ = {
+    intrinsics_front,       intrinsics_rear,      intrinsics_front_left,
+    intrinsics_front_right, intrinsics_back_left, intrinsics_back_right};
+std::array<glm::quat, camera_count> quaternions_{
+    quaternion_front,       quaternion_rear,      quaternion_front_left,
+    quaternion_front_right, quaternion_back_left, quaternion_back_right};
+std::array<glm::vec3, camera_count> translation_vectors_ = {
+    translation_vectors_front,      translation_vectors_rear,
+    translation_vectors_front_left, translation_vectors_front_right,
+    translation_vectors_back_left,  translation_vectors_back_right};
 std::array<glm::vec3, camera_count> t2_;
 std::array<glm::mat4, camera_count> model_mat_;
 
@@ -211,12 +224,10 @@ std::vector<glm::vec3> cube_positions_ = {};
 
 /**
  * @brief 定义生成 cube 位置的方法
- * 省略了前两个的参数，只有2～6
- * 当前只做了地面和墙，地面高度基准可能不对，
  *
  * @param cordinate_path 模型加载位置
  * @param cube_positions 输出的立方体位置
- * @param offset 基准值，把车移动到中心当前是
+ * @param offset 基准值，把车移动到中心，且移动了地面的高度
  */
 void GenCubePosition(const std::string &cordinate_path,
                      std::vector<glm::vec3> cube_positions, glm::vec3 offset) {
@@ -296,10 +307,7 @@ void GenCubePosition(const std::string &cordinate_path,
     }
 };
 
-/**
- * @brief 生成外参 modelmat 的方法
- *
- */
+/* 生成外参: modelmat 的方法 */
 void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
                       glm::mat4 &model_mat, glm::vec3 &t2_,
                       const glm::vec3 &ExtrinsicOffset) {
@@ -338,10 +346,6 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
 
 /**
  * @brief 绘制 Voxel + camera projection
- * voxel
- * 不需要进行世界坐标转化，直接使用原始model，但是疑惑的是怎么使用上外参和内参
- *
- * @return int
  */
 int main() {
     /** 生成需要的内外参，先用一个相机的来测试流程
@@ -349,41 +353,14 @@ int main() {
      * camera coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera
      * to world， 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
      * 负号是因为要反过来求变化方向
-     *
      */
-
-    /* front camera raw data */
-    intrinsics_[0] = intrinsics_front;
-    quaternions_[0] = quaternion_front;
-    translation_vectors_[0] = translation_vectors_front;
-
-    /* rear camera raw data */
-    intrinsics_[1] = intrinsics_rear;
-    quaternions_[1] = quaternion_rear;
-    translation_vectors_[1] = translation_vectors_rear;
-
-    intrinsics_[2] = intrinsics_front_left;
-    quaternions_[2] = quaternion_front_left;
-    translation_vectors_[2] = translation_vectors_front_left;
-
-    intrinsics_[3] = intrinsics_front_right;
-    quaternions_[3] = quaternion_front_right;
-    translation_vectors_[3] = translation_vectors_front_right;
-
-    intrinsics_[4] = intrinsics_back_left;
-    quaternions_[4] = quaternion_back_left;
-    translation_vectors_[4] = translation_vectors_back_left;
-
-    intrinsics_[5] = intrinsics_back_right;
-    quaternions_[5] = quaternion_back_right;
-    translation_vectors_[5] = translation_vectors_back_right;
 
     for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
                          model_mat_[i], t2_[i], ExtrinsicOffset);
     }
 
-    camera.Position = t2_[0];
+    camera.Position = t2_[0]; /* 相机放到前摄位置 */
 
     /* 生成立方体 */
     GenCubePosition(cordinate_path, cube_positions_, cube_offset);
@@ -396,7 +373,6 @@ int main() {
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
 
     /* glfw & glad: initialize and configure */
-
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -585,7 +561,6 @@ int main() {
         lightingShader.setMat4("extrinsic_matrix", model_mat_[5]);
         glBindVertexArray(cubeVAO);
         glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
 
         /* 实例渲染结束 */
         if (0) {
