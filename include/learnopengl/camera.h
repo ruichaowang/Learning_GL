@@ -33,9 +33,8 @@ public:
     glm::vec3 Up;
     glm::vec3 Right;
     glm::vec3 WorldUp;
-    // euler Angles
-    float Yaw;
-    float Pitch;
+    // 四元数代替Yaw和Pitch
+    glm::quat Orientation;
     // camera options
     float MovementSpeed;
     float MouseSensitivity;
@@ -46,19 +45,10 @@ public:
     {
         Position = position;
         WorldUp = up;
-        Yaw = yaw;
-        Pitch = pitch;
+        Orientation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
         updateCameraVectors();
     }
-    // constructor with scalar values
-    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
-    {
-        Position = glm::vec3(posX, posY, posZ);
-        WorldUp = glm::vec3(upX, upY, upZ);
-        Yaw = yaw;
-        Pitch = pitch;
-        updateCameraVectors();
-    }
+    // // // constructor with scalar values
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix()
@@ -88,18 +78,14 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Yaw   += xoffset;
-        Pitch += yoffset;
+         // 四元数表示的旋转，围绕x轴旋转pitch角度，围绕y轴旋转yaw角度
+        glm::quat qPitch = glm::angleAxis(glm::radians(yoffset), glm::vec3(1, 0, 0));
+        glm::quat qYaw = glm::angleAxis(glm::radians(xoffset), glm::vec3(0, 0, 1)); // 注意这里的旋转轴是z轴
 
-        // make sure that when pitch is out of bounds, screen doesn't get flipped
-        if (constrainPitch)
-        {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
-            if (Pitch < -89.0f)
-                Pitch = -89.0f;
-        }
-
+        // Right now applying pitch first then yaw.
+        Orientation = qYaw * Orientation * qPitch;
+        Orientation = glm::normalize(Orientation); // 四元数需要归一化
+        
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
@@ -118,18 +104,12 @@ private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
-        // calculate the new Front vector
-        glm::vec3 front;
-        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        front.y = sin(glm::radians(Pitch));
-        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        Front = glm::normalize(front);
-
-
-        // also re-calculate the Right and Up vector
-        Right = glm::normalize(glm::cross(Front, WorldUp)); // 010 为worldup
-        // Right = glm::normalize(glm::cross(WorldUp, Front)); // 001 为world up
-        Up    = glm::normalize(glm::cross(Right, Front));
+        // 将Orientation四元数转换为3x3旋转矩阵
+        glm::mat3 rotMatrix = glm::mat3_cast(Orientation);
+        // 现在可以使用旋转矩阵来旋转向量
+        Front = rotMatrix * glm::vec3(0.0f, 0.0f, -1.0f);
+        Right = rotMatrix * glm::vec3(1.0f, 0.0f, 0.0f);
+        Up    = glm::cross(Right, Front);
     }
 };
 #endif
