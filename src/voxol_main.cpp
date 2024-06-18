@@ -40,14 +40,6 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// 光源属性结构体
-struct Light {
-    glm::vec3 position;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-};
-
 /* 函数用于读取CSV文件并返回一个整数的二维向量 */
 std::vector<std::vector<int>> read_csv(const std::string &filename) {
     std::vector<std::vector<int>> data;
