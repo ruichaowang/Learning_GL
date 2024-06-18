@@ -5,7 +5,7 @@ in vec4 model_position;
 
 uniform sampler2D camera_texture;
 uniform vec2 focal_lengths;
-uniform vec2 cammera_principal_point;
+uniform vec2 camera_principal_point;
 uniform int debug_discard;
 
 void main() {
@@ -17,7 +17,7 @@ void main() {
         discard;
     }
     vec2 viewp = vec2(model_position.x/pz, model_position.y/pz);
-    vec2 final_point = viewp * focal_lengths + cammera_principal_point;
+    vec2 final_point = viewp * focal_lengths + camera_principal_point;
     
     if (debug_discard == 1) {
         if (final_point.x < 0 ||  final_point.y < 0) {

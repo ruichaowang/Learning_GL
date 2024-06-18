@@ -69,14 +69,12 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 /* 这个数据是模型参数 */
 const float VOXEL_SIZE = 1.024f;
 const auto IMAGE_WIDTH = 1600.0;
-const auto image_height = 900.0;
+const auto IMAGE_HEIGHT = 900.0;
 
 const auto debug_draw_pano = true;
 const int debug_discard = 1;
 
-/* lighting， 我们认为y轴正向为我们需要的方向放置一个标志 */
-glm::vec3 lightPos(0.0f, 10.0f, 5.0f);
-glm::vec3 light_intensity(2.0f);
+
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
 const auto VOTEX_OFFSET = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
@@ -379,7 +377,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader zprogram
-    Shader lightingShader(color_vs, color_fs);
+    Shader voxol_program_(color_vs, color_fs);
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
 
@@ -397,15 +395,15 @@ int main() {
             original_vertices_with_positions_only[i + 2] * VOXEL_SIZE; // z坐标
     }
 
-    unsigned int VBO, cubeVAO;
-    glGenVertexArrays(1, &cubeVAO);
+    unsigned int VBO, cube_vao_;
+    glGenVertexArrays(1, &cube_vao_);
     glGenBuffers(1, &VBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(scaledVertices), scaledVertices,
                  GL_STATIC_DRAW);
 
-    glBindVertexArray(cubeVAO);
+    glBindVertexArray(cube_vao_);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
@@ -430,9 +428,9 @@ int main() {
     camera_textures[5] = loadTexture(cam_back_right_path);
 
     // shader configuration
-    lightingShader.use();
-    lightingShader.setInt("camera_texture", 0);
-    lightingShader.setInt("debug_discard", debug_discard);
+    voxol_program_.use();
+    voxol_program_.setInt("camera_texture", 0);
+    voxol_program_.setInt("debug_discard", debug_discard);
 
     // render loop -----------
     while (!glfwWindowShouldClose(window)) {
@@ -448,43 +446,42 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightingShader.use();
-        lightingShader.setVec3("light.position", lightPos);
-        lightingShader.setVec3("viewPos", camera.Position);
+        voxol_program_.use();
+        voxol_program_.setVec3("viewPos", camera.Position);
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
         glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
-                                           intrinsics_[0][1][1] / image_height);
+                                           intrinsics_[0][1][1] / IMAGE_HEIGHT);
         glm::vec2 principal_point =
             glm::vec2(intrinsics_[0][0][2] / IMAGE_WIDTH,
-                      intrinsics_[0][1][2] / image_height);
+                      intrinsics_[0][1][2] / IMAGE_HEIGHT);
 
-        lightingShader.setVec2("focal_lengths", focal_length);
-        lightingShader.setVec2("cammera_principal_point", principal_point);
+        voxol_program_.setVec2("focal_lengths", focal_length);
+        voxol_program_.setVec2("camera_principal_point", principal_point);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
             0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("projection", projection);
-        lightingShader.setMat4("view", view);
+        voxol_program_.setMat4("projection", projection);
+        voxol_program_.setMat4("view", view);
 
         /* 实例渲染，instance rendering */
-        lightingShader.setInt("camera_texture", 0);
+        voxol_program_.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindVertexArray(cubeVAO);
+        glBindVertexArray(cube_vao_);
 
         for (auto i = 0; i < CAMERA_COUNTS; i++) {
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[i]);
+            voxol_program_.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
         }
 
         /* 实例渲染结束 */
         if (0) {
             /* 绘制一次 */
-            lightingShader.setMat4("model", glm::mat4(1.0f));
+            voxol_program_.setMat4("model", glm::mat4(1.0f));
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
@@ -502,7 +499,7 @@ int main() {
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteVertexArrays(1, &cube_vao_);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &instanceVBO);
 
