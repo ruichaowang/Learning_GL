@@ -377,21 +377,21 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader zprogram
-    Shader voxol_program_(color_vs, color_fs);
+    Shader voxel_program_(color_vs, color_fs);
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
 
     /* 缩放顶点数据 */
-    float scaledVertices[sizeof(original_vertices_with_positions_only) /
+    float scaled_vertices[sizeof(original_vertices_with_positions_only) /
                          sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
     for (size_t i = 0;
          i < sizeof(original_vertices_with_positions_only) / sizeof(float);
          i += 3) {
-        scaledVertices[i] =
+        scaled_vertices[i] =
             original_vertices_with_positions_only[i] * VOXEL_SIZE; // x坐标
-        scaledVertices[i + 1] =
+        scaled_vertices[i + 1] =
             original_vertices_with_positions_only[i + 1] * VOXEL_SIZE; // y坐标
-        scaledVertices[i + 2] =
+        scaled_vertices[i + 2] =
             original_vertices_with_positions_only[i + 2] * VOXEL_SIZE; // z坐标
     }
 
@@ -400,7 +400,7 @@ int main() {
     glGenBuffers(1, &VBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(scaledVertices), scaledVertices,
+    glBufferData(GL_ARRAY_BUFFER, sizeof(scaled_vertices), scaled_vertices,
                  GL_STATIC_DRAW);
 
     glBindVertexArray(cube_vao_);
@@ -428,9 +428,9 @@ int main() {
     camera_textures[5] = loadTexture(cam_back_right_path);
 
     // shader configuration
-    voxol_program_.use();
-    voxol_program_.setInt("camera_texture", 0);
-    voxol_program_.setInt("debug_discard", debug_discard);
+    voxel_program_.use();
+    voxel_program_.setInt("camera_texture", 0);
+    voxel_program_.setInt("debug_discard", debug_discard);
 
     // render loop -----------
     while (!glfwWindowShouldClose(window)) {
@@ -446,8 +446,8 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        voxol_program_.use();
-        voxol_program_.setVec3("viewPos", camera.Position);
+        voxel_program_.use();
+        voxel_program_.setVec3("viewPos", camera.Position);
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
         glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
@@ -456,32 +456,32 @@ int main() {
             glm::vec2(intrinsics_[0][0][2] / IMAGE_WIDTH,
                       intrinsics_[0][1][2] / IMAGE_HEIGHT);
 
-        voxol_program_.setVec2("focal_lengths", focal_length);
-        voxol_program_.setVec2("camera_principal_point", principal_point);
+        voxel_program_.setVec2("focal_lengths", focal_length);
+        voxel_program_.setVec2("camera_principal_point", principal_point);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
             0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        voxol_program_.setMat4("projection", projection);
-        voxol_program_.setMat4("view", view);
+        voxel_program_.setMat4("projection", projection);
+        voxel_program_.setMat4("view", view);
 
         /* 实例渲染，instance rendering */
-        voxol_program_.setInt("camera_texture", 0);
+        voxel_program_.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(cube_vao_);
 
         for (auto i = 0; i < CAMERA_COUNTS; i++) {
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-            voxol_program_.setMat4("extrinsic_matrix", model_mat_[i]);
+            voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
         }
 
         /* 实例渲染结束 */
         if (0) {
             /* 绘制一次 */
-            voxol_program_.setMat4("model", glm::mat4(1.0f));
+            voxel_program_.setMat4("model", glm::mat4(1.0f));
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
