@@ -79,13 +79,16 @@ const float voxel_size = 1.024f;
 const auto image_width = 1600.0;
 const auto image_height = 900.0;
 
+const auto debug_draw_pano = true;
+const int debug_discard = 1;
+
 /* lighting， 我们认为y轴正向为我们需要的方向放置一个标志 */
 glm::vec3 lightPos(0.0f, 10.0f, 5.0f);
 glm::vec3 light_intensity(2.0f);
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
-const auto cube_offset = glm::vec3(-50.0f, -50.0f, -2.0f);
+const auto cube_offset = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
-const auto ExtrinsicOffset = glm::vec3(0.0, 1.5, 2.5);
+const auto ExtrinsicOffset = glm::vec3(-0.0, 1.0, 1.5);
 
 const auto color_vs = "shaders/colors.vs";
 const auto color_fs = "shaders/colors.fs";
@@ -487,6 +490,8 @@ int main() {
     // shader configuration
     lightingShader.use();
     lightingShader.setInt("camera_texture", 0);
+    lightingShader.setInt("debug_discard",debug_discard);
+    
     // light properties
     lightingShader.setVec3("light.ambient", light.ambient);
     lightingShader.setVec3("light.diffuse", light.diffuse);
@@ -537,30 +542,32 @@ int main() {
         glBindVertexArray(cubeVAO);
         glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
-        glBindTexture(GL_TEXTURE_2D, cam_back_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
-        glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+        if (debug_draw_pano) {
+            glBindTexture(GL_TEXTURE_2D, cam_back_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
-        glBindTexture(GL_TEXTURE_2D, cam_front_left_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[2]);
-        glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+            glBindTexture(GL_TEXTURE_2D, cam_front_left_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[2]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
-        glBindTexture(GL_TEXTURE_2D, cam_front_right_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[3]);
-        glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+            glBindTexture(GL_TEXTURE_2D, cam_front_right_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[3]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
-        glBindTexture(GL_TEXTURE_2D, cam_back_left_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[4]);
-        glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+            glBindTexture(GL_TEXTURE_2D, cam_back_left_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[4]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
 
-        glBindTexture(GL_TEXTURE_2D, cam_back_right_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[5]);
-        glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+            glBindTexture(GL_TEXTURE_2D, cam_back_right_tex);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[5]);
+            glBindVertexArray(cubeVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
+        }
 
         /* 实例渲染结束 */
         if (0) {
@@ -612,6 +619,10 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        /* 归位 */
+        camera.Position = t2_[0];
+    }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
