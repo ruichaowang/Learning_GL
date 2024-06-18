@@ -1,7 +1,6 @@
 #version 330 core
 out vec3 FragColor;
 
-in vec2 TexCoords;
 in vec4 model_position;
 
 uniform sampler2D camera_texture;

@@ -170,48 +170,23 @@ const auto translation_vectors_back_right =
 
 const float original_vertices_with_positions_only[] = {
     // positions
-    -0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    -0.5f, 0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
+    0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
 
-    -0.5f, -0.5f, 0.5f,
-    0.5f, -0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f,
-    -0.5f, -0.5f, 0.5f,
+    -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,
 
-    -0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f,
-    -0.5f, -0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f,
+    -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,
 
-    0.5f, 0.5f, 0.5f,
-    0.5f, 0.5f, -0.5f,
-    0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
+    0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f,
+    0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
 
-    -0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, 0.5f,
-    0.5f, -0.5f, 0.5f,
-    -0.5f, -0.5f, 0.5f,
-    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,
+    0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f,
 
-    -0.5f, 0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    0.5f, 0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, -0.5f
-};
+    -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f};
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -266,7 +241,7 @@ std::array<glm::vec3, camera_count> translation_vectors_ = {
     translation_vectors_back_left,  translation_vectors_back_right};
 std::array<glm::vec3, camera_count> t2_;
 std::array<glm::mat4, camera_count> model_mat_;
-
+std::array<unsigned int, camera_count> camera_textures;
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
 
@@ -458,10 +433,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader zprogram
-
-    // ------------------------------------
     Shader lightingShader(color_vs, color_fs);
-    Shader lightCubeShader(light_cube_vs, light_cube_fs);
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
 
@@ -490,12 +462,6 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     unsigned int instanceVBO;
     glGenBuffers(1, &instanceVBO);
@@ -508,42 +474,21 @@ int main() {
                           (void *)0);
     glVertexAttribDivisor(3, 1);
 
-    // second, configure the light's VAO (VBO stays the same; the vertices are
-    // the same for the light object which is also a 3D cube)
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
-
-    // we only need to bind to the VBO (to link it with glVertexAttribPointer),
-    // no need to fill it; the VBO's data already contains all we need (it's
-    // already bound, but we do it again for educational purposes)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // note that we update the lamp's position attribute's stride to reflect the
-    // updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-
     /* load textures */
-    unsigned int cam_front_tex = loadTexture(cam_front_path);
-    unsigned int cam_back_tex = loadTexture(cam_back_path);
-    unsigned int cam_front_left_tex = loadTexture(cam_front_left_path);
-    unsigned int cam_front_right_tex = loadTexture(cam_front_right_path);
-    unsigned int cam_back_left_tex = loadTexture(cam_back_left_path);
-    unsigned int cam_back_right_tex = loadTexture(cam_back_right_path);
+    camera_textures[0] = loadTexture(cam_front_path);
+    camera_textures[1] = loadTexture(cam_back_path);
+    camera_textures[2] = loadTexture(cam_front_left_path);
+    camera_textures[3] = loadTexture(cam_front_right_path);
+    camera_textures[4] = loadTexture(cam_back_left_path);
+    camera_textures[5] = loadTexture(cam_back_right_path);
+    
 
     // shader configuration
     lightingShader.use();
     lightingShader.setInt("camera_texture", 0);
     lightingShader.setInt("debug_discard", debug_discard);
 
-    // light properties
-    lightingShader.setVec3("light.ambient", light.ambient);
-    lightingShader.setVec3("light.diffuse", light.diffuse);
-    lightingShader.setVec3("light.specular", light.specular);
-
-    // render loop
-    // -----------
+    // render loop -----------
     while (!glfwWindowShouldClose(window)) {
         auto frameStart = std::chrono::high_resolution_clock::now();
 
@@ -553,8 +498,7 @@ int main() {
         // -----
         processInput(window);
 
-        // render
-        // ------
+        // render ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -583,36 +527,11 @@ int main() {
         /* 实例渲染，instance rendering */
         lightingShader.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
-
-        glBindTexture(GL_TEXTURE_2D, cam_front_tex);
-        lightingShader.setMat4("extrinsic_matrix", model_mat_[0]);
         glBindVertexArray(cubeVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-        if (debug_draw_pano) {
-            glBindTexture(GL_TEXTURE_2D, cam_back_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[1]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_front_left_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[2]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_front_right_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[3]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_back_left_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[4]);
-            glBindVertexArray(cubeVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
-
-            glBindTexture(GL_TEXTURE_2D, cam_back_right_tex);
-            lightingShader.setMat4("extrinsic_matrix", model_mat_[5]);
-            glBindVertexArray(cubeVAO);
+        
+        for(auto i = 0; i < camera_count; i++) {
+            glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
+            lightingShader.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
         }
 
@@ -621,44 +540,23 @@ int main() {
             /* 绘制一次 */
             lightingShader.setMat4("model", glm::mat4(1.0f));
             glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            /* 直接绘制多次 */
-            glBindVertexArray(cubeVAO);
-            for (unsigned int i = 0; i < cube_positions_.size(); i++) {
-                lightingShader.setVec3("position", cube_positions_[i]);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
         }
-
-        /* draw the a smaller cube lamp object */
-        lightCubeShader.use();
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        glm::mat4 model;
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f));
-        lightCubeShader.setMat4("model", model);
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         auto frameEnd = std::chrono::high_resolution_clock::now();
         auto frameDuration =
             std::chrono::duration_cast<std::chrono::microseconds>(frameEnd -
                                                                   frameStart)
                 .count();
-        std::cout << "Frame time: " << frameDuration << " microseconds ("
-                  << 1.0 / (frameDuration * 1e-6) << " FPS)" << std::endl;
+        // std::cout << "Frame time: " << frameDuration << " microseconds ("
+        //           << 1.0 / (frameDuration * 1e-6) << " FPS)" << std::endl;
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse
-        // moved etc.)
+        // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
     glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &instanceVBO);
 
