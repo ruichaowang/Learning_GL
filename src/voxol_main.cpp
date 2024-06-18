@@ -168,6 +168,7 @@ const auto quaternion_back_right =
 const auto translation_vectors_back_right =
     glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
 
+/* 立方体定点数据 */
 const float original_vertices_with_positions_only[] = {
     // positions
     -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
@@ -187,45 +188,6 @@ const float original_vertices_with_positions_only[] = {
 
     -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,
     0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f};
-
-/* 立方体定点数据，应该需要转化 */
-const float original_ertices[] = {
-    // positions          // normals           // texture coords
-    -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.5f,  -0.5f,
-    -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
-    0.0f,  -1.0f, 1.0f,  1.0f,  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
-    1.0f,  1.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,
-
-    -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.5f,  -0.5f,
-    0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,
-    0.0f,  1.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-    1.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-    -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,
-    -0.5f, -1.0f, 0.0f,  0.0f,  1.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f,
-    0.0f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
-    0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,
-    -0.5f, 1.0f,  0.0f,  0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
-    0.0f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
-    0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.5f,  -0.5f,
-    -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  0.0f,
-    -1.0f, 0.0f,  1.0f,  0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
-    1.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,
-
-    -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,
-    -0.5f, 0.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,
-    1.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
 /* 内外参部分 */
 const int camera_count = 6;
@@ -388,13 +350,6 @@ int main() {
     /* 生成立方体 */
     GenCubePosition(cordinate_path, cube_positions_, cube_offset);
 
-    /* 设置光源 */
-    Light light;
-    light.position = glm::vec3(1.2f, 1.0f, 2.0f) * light_intensity;
-    light.ambient = glm::vec3(0.2f, 0.2f, 0.2f) * light_intensity;
-    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f) * light_intensity;
-    light.specular = glm::vec3(1.0f, 1.0f, 1.0f) * light_intensity;
-
     /* glfw & glad: initialize and configure */
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -428,8 +383,7 @@ int main() {
         return -1;
     }
 
-    // configure global opengl state
-    // -----------------------------
+    // configure global opengl state -----------------------------
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader zprogram
@@ -438,16 +392,17 @@ int main() {
     // ------------------------------------------------------------------
 
     /* 缩放顶点数据 */
-    float scaledVertices[sizeof(original_ertices) /
+    float scaledVertices[sizeof(original_vertices_with_positions_only) /
                          sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
-    for (size_t i = 0; i < sizeof(original_ertices) / sizeof(float); i += 8) {
-        scaledVertices[i] = original_ertices[i] * voxel_size;         // x坐标
-        scaledVertices[i + 1] = original_ertices[i + 1] * voxel_size; // y坐标
-        scaledVertices[i + 2] = original_ertices[i + 2] * voxel_size; // z坐标
-        // 法线和纹理坐标保持不变
-        for (int j = 3; j < 8; ++j) {
-            scaledVertices[i + j] = original_ertices[i + j];
-        }
+    for (size_t i = 0;
+         i < sizeof(original_vertices_with_positions_only) / sizeof(float);
+         i += 3) {
+        scaledVertices[i] =
+            original_vertices_with_positions_only[i] * voxel_size; // x坐标
+        scaledVertices[i + 1] =
+            original_vertices_with_positions_only[i + 1] * voxel_size; // y坐标
+        scaledVertices[i + 2] =
+            original_vertices_with_positions_only[i + 2] * voxel_size; // z坐标
     }
 
     unsigned int VBO, cubeVAO;
@@ -459,7 +414,7 @@ int main() {
                  GL_STATIC_DRAW);
 
     glBindVertexArray(cubeVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
@@ -481,7 +436,6 @@ int main() {
     camera_textures[3] = loadTexture(cam_front_right_path);
     camera_textures[4] = loadTexture(cam_back_left_path);
     camera_textures[5] = loadTexture(cam_back_right_path);
-    
 
     // shader configuration
     lightingShader.use();
@@ -529,7 +483,7 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(cubeVAO);
 
-        for(auto i = 0; i < camera_count; i++) {
+        for (auto i = 0; i < camera_count; i++) {
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
             lightingShader.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
