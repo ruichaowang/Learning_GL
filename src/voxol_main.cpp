@@ -490,8 +490,8 @@ int main() {
     // shader configuration
     lightingShader.use();
     lightingShader.setInt("camera_texture", 0);
-    lightingShader.setInt("debug_discard",debug_discard);
-    
+    lightingShader.setInt("debug_discard", debug_discard);
+
     // light properties
     lightingShader.setVec3("light.ambient", light.ambient);
     lightingShader.setVec3("light.diffuse", light.diffuse);
@@ -500,6 +500,8 @@ int main() {
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
+        auto frameStart = std::chrono::high_resolution_clock::now();
+
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -594,6 +596,14 @@ int main() {
         lightCubeShader.setMat4("model", model);
         glBindVertexArray(lightCubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        auto frameEnd = std::chrono::high_resolution_clock::now();
+        auto frameDuration =
+            std::chrono::duration_cast<std::chrono::microseconds>(frameEnd -
+                                                                  frameStart)
+                .count();
+        std::cout << "Frame time: " << frameDuration << " microseconds ("
+                  << 1.0 / (frameDuration * 1e-6) << " FPS)" << std::endl;
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
