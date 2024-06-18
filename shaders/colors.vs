@@ -1,6 +1,6 @@
 #version 330 core
 layout(location = 0) in vec3 aPos;
-layout(location = 3) in vec3 aInstancePos; // 实例位置
+layout(location = 1) in vec3 aInstancePos; // 实例位置
 
 out vec3 FragPos;
 out vec4 model_position;

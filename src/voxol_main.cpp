@@ -468,11 +468,11 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
     glBufferData(GL_ARRAY_BUFFER, cube_positions_.size() * sizeof(glm::vec3),
                  &cube_positions_[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
-    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(1, 1);
 
     /* load textures */
     camera_textures[0] = loadTexture(cam_front_path);
@@ -528,7 +528,7 @@ int main() {
         lightingShader.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(cubeVAO);
-        
+
         for(auto i = 0; i < camera_count; i++) {
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
             lightingShader.setMat4("extrinsic_matrix", model_mat_[i]);
