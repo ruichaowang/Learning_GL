@@ -26,14 +26,14 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
 // settings
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1080;
+const unsigned int SCREEN_WIDTH = 1920;
+const unsigned int SCREEN_HEIGHT = 1080;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f), -0.0f,
               89.0f); //-90
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
+float lastX = SCREEN_WIDTH / 2.0f;
+float lastY = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
@@ -67,8 +67,8 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 }
 
 /* 这个数据是模型参数 */
-const float voxel_size = 1.024f;
-const auto image_width = 1600.0;
+const float VOXEL_SIZE = 1.024f;
+const auto IMAGE_WIDTH = 1600.0;
 const auto image_height = 900.0;
 
 const auto debug_draw_pano = true;
@@ -78,7 +78,7 @@ const int debug_discard = 1;
 glm::vec3 lightPos(0.0f, 10.0f, 5.0f);
 glm::vec3 light_intensity(2.0f);
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
-const auto cube_offset = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
+const auto VOTEX_OFFSET = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
 const auto ExtrinsicOffset = glm::vec3(-0.0, 1.0, 1.5);
 
@@ -87,7 +87,7 @@ const auto color_fs = "shaders/colors.fs";
 const auto light_cube_vs = "shaders/light_cube.vs";
 const auto light_cube_fs = "shaders/light_cube.fs";
 const auto texture_path = "assets/container2.png";
-const auto cordinate_path = "assets/cordinate/slice_";
+const auto VOXEL_COORDINATE_PATH = "assets/cordinate/slice_";
 const auto cam_front_path =
     "assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
@@ -182,58 +182,58 @@ const float original_vertices_with_positions_only[] = {
     0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f};
 
 /* 内外参部分 */
-const int camera_count = 6;
-std::array<glm::mat3, camera_count> intrinsics_ = {
+const int CAMERA_COUNTS = 6;
+std::array<glm::mat3, CAMERA_COUNTS> intrinsics_ = {
     intrinsics_front,       intrinsics_rear,      intrinsics_front_left,
     intrinsics_front_right, intrinsics_back_left, intrinsics_back_right};
-std::array<glm::quat, camera_count> quaternions_{
+std::array<glm::quat, CAMERA_COUNTS> quaternions_{
     quaternion_front,       quaternion_rear,      quaternion_front_left,
     quaternion_front_right, quaternion_back_left, quaternion_back_right};
-std::array<glm::vec3, camera_count> translation_vectors_ = {
+std::array<glm::vec3, CAMERA_COUNTS> translation_vectors_ = {
     translation_vectors_front,      translation_vectors_rear,
     translation_vectors_front_left, translation_vectors_front_right,
     translation_vectors_back_left,  translation_vectors_back_right};
-std::array<glm::vec3, camera_count> t2_;
-std::array<glm::mat4, camera_count> model_mat_;
-std::array<unsigned int, camera_count> camera_textures;
+std::array<glm::vec3, CAMERA_COUNTS> t2_;
+std::array<glm::mat4, CAMERA_COUNTS> model_mat_;
+std::array<unsigned int, CAMERA_COUNTS> camera_textures;
 /* 定义立方体的位置 */
 std::vector<glm::vec3> cube_positions_ = {};
 
 /**
  * @brief 定义生成 cube 位置的方法
  *
- * @param cordinate_path 模型加载位置
+ * @param VOXEL_COORDINATE_PATH 模型加载位置
  * @param cube_positions 输出的立方体位置
  * @param offset 基准值，把车移动到中心，且移动了地面的高度
  */
-void GenCubePosition(const std::string &cordinate_path,
-                     std::vector<glm::vec3> cube_positions, glm::vec3 offset) {
+void GenCubePosition(const std::string &path,
+                     std::vector<glm::vec3> &cube_positions, glm::vec3 offset) {
     auto depth = 30;
     auto height = 100;
     auto width = 100;
     /* 加载 cube 坐标,  */
     for (int z = 2; z < 8; ++z) {
         const std::string filename =
-            cordinate_path + std::to_string(z) + ".csv";
+            path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 /* 填充地面 */
                 if (z == 2) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-                    cube_positions_.push_back(temp_positon);
+                    cube_positions.push_back(temp_positon);
                 }
 
                 /* 添加边缘和立面 */
                 if (y == 0 || y == 99 || x == 0 || x == 99) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-                    cube_positions_.push_back(temp_positon);
+                    cube_positions.push_back(temp_positon);
                 }
 
                 /* 添加 voxels */
                 if (data[y][x] != 17) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-                    cube_positions_.push_back(temp_positon);
+                    cube_positions.push_back(temp_positon);
                 }
             }
         }
@@ -253,20 +253,20 @@ void GenCubePosition(const std::string &cordinate_path,
             wallPositions.push_back(glm::vec3(x, height - 1, z));
         }
     }
-    cube_positions_.insert(cube_positions_.end(), wallPositions.begin(),
+    cube_positions.insert(cube_positions.end(), wallPositions.begin(),
                            wallPositions.end());
 
     // 移除重复的顶点
-    cube_positions_.erase(
-        std::unique(cube_positions_.begin(), cube_positions_.end()),
-        cube_positions_.end());
+    cube_positions.erase(
+        std::unique(cube_positions.begin(), cube_positions.end()),
+        cube_positions.end());
 
     /* cube 整体移动，以及转化到真实世界坐标 */
-    for (auto &position : cube_positions_) {
+    for (auto &position : cube_positions) {
         position += offset;
     }
-    for (auto &position : cube_positions_) {
-        position *= voxel_size;
+    for (auto &position : cube_positions) {
+        position *= VOXEL_SIZE;
     }
 
     /* cube z 轴旋转 -90 度 */
@@ -274,12 +274,12 @@ void GenCubePosition(const std::string &cordinate_path,
     float rotationAngleRadians = glm::radians(rotationAngleDegrees);
     glm::mat4 rotationMatrix = glm::rotate(
         glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
-    for (auto &position : cube_positions_) {
+    for (auto &position : cube_positions) {
         position = glm::vec3(rotationMatrix * glm::vec4(position, 1.0f));
     }
 
     /* 对y轴反转 */
-    for (auto &position : cube_positions_) {
+    for (auto &position : cube_positions) {
         position.y = -position.y;
     }
 };
@@ -340,7 +340,7 @@ int main() {
     camera.Position = t2_[0]; /* 相机放到前摄位置 */
 
     /* 生成立方体 */
-    GenCubePosition(cordinate_path, cube_positions_, cube_offset);
+    GenCubePosition(VOXEL_COORDINATE_PATH, cube_positions_, VOTEX_OFFSET);
 
     /* glfw & glad: initialize and configure */
     glfwInit();
@@ -354,7 +354,7 @@ int main() {
     // glfw window creation
     // --------------------
     GLFWwindow *window =
-        glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VoxelRender", NULL, NULL);
+        glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VoxelRender", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -390,11 +390,11 @@ int main() {
          i < sizeof(original_vertices_with_positions_only) / sizeof(float);
          i += 3) {
         scaledVertices[i] =
-            original_vertices_with_positions_only[i] * voxel_size; // x坐标
+            original_vertices_with_positions_only[i] * VOXEL_SIZE; // x坐标
         scaledVertices[i + 1] =
-            original_vertices_with_positions_only[i + 1] * voxel_size; // y坐标
+            original_vertices_with_positions_only[i + 1] * VOXEL_SIZE; // y坐标
         scaledVertices[i + 2] =
-            original_vertices_with_positions_only[i + 2] * voxel_size; // z坐标
+            original_vertices_with_positions_only[i + 2] * VOXEL_SIZE; // z坐标
     }
 
     unsigned int VBO, cubeVAO;
@@ -453,10 +453,10 @@ int main() {
         lightingShader.setVec3("viewPos", camera.Position);
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
-        glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / image_width,
+        glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
                                            intrinsics_[0][1][1] / image_height);
         glm::vec2 principal_point =
-            glm::vec2(intrinsics_[0][0][2] / image_width,
+            glm::vec2(intrinsics_[0][0][2] / IMAGE_WIDTH,
                       intrinsics_[0][1][2] / image_height);
 
         lightingShader.setVec2("focal_lengths", focal_length);
@@ -464,7 +464,7 @@ int main() {
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
-            glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT,
+            glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
             0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
@@ -475,7 +475,7 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(cubeVAO);
 
-        for (auto i = 0; i < camera_count; i++) {
+        for (auto i = 0; i < CAMERA_COUNTS; i++) {
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
             lightingShader.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());

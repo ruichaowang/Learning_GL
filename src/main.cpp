@@ -21,13 +21,13 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
 // settings
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1080;
+const unsigned int SCREEN_WIDTH = 1920;
+const unsigned int SCREEN_HEIGHT = 1080;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
+float lastX = SCREEN_WIDTH / 2.0f;
+float lastY = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
@@ -78,13 +78,13 @@ std::vector<std::vector<int>> read_csv(const std::string &filename)
 }
 
 glm::vec3 offset = glm::vec3(50.0f, 50.0f, 1.0f);
-const float voxel_size = 0.2f;
+const float VOXEL_SIZE = 0.2f;
 auto color_vs = "shaders/colors.vs";
 auto color_fs = "shaders/colors.fs";
 auto light_cube_vs = "shaders/light_cube.vs";
 auto light_cube_fs = "shaders/light_cube.fs";
 auto texture_path = "assets/container2.png";
-auto cordinate_path = "assets/cordinate/slice_";
+auto VOXEL_CORDINATE_PATH = "assets/cordinate/slice_";
 
 /* 立方体定点数据，应该需要转化 */
 const float original_ertices[] = {
@@ -144,7 +144,7 @@ int main()
         /* 加载 cube 坐标  */
         for (int z = 0; z < 8; ++z)
         {
-            const std::string filename = cordinate_path + std::to_string(z) + ".csv";
+            const std::string filename = VOXEL_CORDINATE_PATH + std::to_string(z) + ".csv";
             std::vector<std::vector<int>> data = read_csv(filename);
             for (int y = 0; y < height; ++y)
             {
@@ -202,7 +202,7 @@ int main()
         }
         for (auto &position : cubePositions)
         {
-            position *= voxel_size;
+            position *= VOXEL_SIZE;
         }
     }
 
@@ -229,7 +229,7 @@ int main()
 
         // glfw window creation
         // --------------------
-        GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VoxelRender", NULL, NULL);
+        GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VoxelRender", NULL, NULL);
         if (window == NULL)
         {
             std::cout << "Failed to create GLFW window" << std::endl;
@@ -267,9 +267,9 @@ int main()
         float scaledVertices[sizeof(original_ertices) / sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
         for (size_t i = 0; i < sizeof(original_ertices) / sizeof(float); i += 8)
         {
-            scaledVertices[i] = original_ertices[i] * voxel_size;         // x坐标
-            scaledVertices[i + 1] = original_ertices[i + 1] * voxel_size; // y坐标
-            scaledVertices[i + 2] = original_ertices[i + 2] * voxel_size; // z坐标
+            scaledVertices[i] = original_ertices[i] * VOXEL_SIZE;         // x坐标
+            scaledVertices[i + 1] = original_ertices[i + 1] * VOXEL_SIZE; // y坐标
+            scaledVertices[i + 2] = original_ertices[i + 2] * VOXEL_SIZE; // z坐标
             // 法线和纹理坐标保持不变
             for (int j = 3; j < 8; ++j)
             {
@@ -340,7 +340,7 @@ int main()
             lightingShader.setVec3("viewPos", camera.Position);
 
             // view/projection transformations
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
             glm::mat4 view = camera.GetViewMatrix();
             lightingShader.setMat4("projection", projection);
             lightingShader.setMat4("view", view);
