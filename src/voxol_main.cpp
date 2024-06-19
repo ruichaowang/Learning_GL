@@ -74,35 +74,34 @@ const auto IMAGE_HEIGHT = 900.0;
 const auto debug_draw_pano = true;
 const int debug_discard = 1;
 
-
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
-const auto VOTEX_OFFSET = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
+const auto VOXEL_OFFSET = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
 const auto ExtrinsicOffset = glm::vec3(-0.0, 1.0, 1.5);
 
-const auto color_vs = "shaders/colors.vs";
-const auto color_fs = "shaders/colors.fs";
-const auto light_cube_vs = "shaders/light_cube.vs";
-const auto light_cube_fs = "shaders/light_cube.fs";
-const auto texture_path = "assets/container2.png";
-const auto VOXEL_COORDINATE_PATH = "assets/cordinate/slice_";
+const auto color_vs = "../shaders/colors.vs";
+const auto color_fs = "../shaders/colors.fs";
+const auto light_cube_vs = "../shaders/light_cube.vs";
+const auto light_cube_fs = "../shaders/light_cube.fs";
+const auto texture_path = "../assets/container2.png";
+const auto VOXEL_COORDINATE_PATH = "../assets/cordinate/slice_";
 const auto cam_front_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
 const auto cam_back_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_BACK__1538984245437525.jpg";
 const auto cam_front_left_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT_LEFT__1538984245404844.jpg";
 const auto cam_front_right_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
 const auto cam_back_left_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_BACK_LEFT__1538984245447423.jpg";
 const auto cam_back_right_path =
-    "assets/camera/"
+    "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_BACK_RIGHT__1538984245427893.jpg";
 
 const auto intrinsics_front =
@@ -159,7 +158,7 @@ const auto translation_vectors_back_right =
     glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
 
 /* 立方体定点数据 */
-const float original_vertices_with_positions_only[] = {
+const float CUBE_VERTICES[] = {
     // positions
     -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
     0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
@@ -211,8 +210,7 @@ void GenCubePosition(const std::string &path,
     auto width = 100;
     /* 加载 cube 坐标,  */
     for (int z = 2; z < 8; ++z) {
-        const std::string filename =
-            path + std::to_string(z) + ".csv";
+        const std::string filename = path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
@@ -252,7 +250,7 @@ void GenCubePosition(const std::string &path,
         }
     }
     cube_positions.insert(cube_positions.end(), wallPositions.begin(),
-                           wallPositions.end());
+                          wallPositions.end());
 
     // 移除重复的顶点
     cube_positions.erase(
@@ -338,7 +336,7 @@ int main() {
     camera.Position = t2_[0]; /* 相机放到前摄位置 */
 
     /* 生成立方体 */
-    GenCubePosition(VOXEL_COORDINATE_PATH, cube_positions_, VOTEX_OFFSET);
+    GenCubePosition(VOXEL_COORDINATE_PATH, cube_positions_, VOXEL_OFFSET);
 
     /* glfw & glad: initialize and configure */
     glfwInit();
@@ -351,8 +349,8 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window =
-        glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VoxelRender", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT,
+                                          "VoxelRender", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -382,24 +380,18 @@ int main() {
     // ------------------------------------------------------------------
 
     /* 缩放顶点数据 */
-    float scaled_vertices[sizeof(original_vertices_with_positions_only) /
-                         sizeof(float)]; // 创建一个新数组来存储缩放后的顶点数据
-    for (size_t i = 0;
-         i < sizeof(original_vertices_with_positions_only) / sizeof(float);
-         i += 3) {
-        scaled_vertices[i] =
-            original_vertices_with_positions_only[i] * VOXEL_SIZE; // x坐标
-        scaled_vertices[i + 1] =
-            original_vertices_with_positions_only[i + 1] * VOXEL_SIZE; // y坐标
-        scaled_vertices[i + 2] =
-            original_vertices_with_positions_only[i + 2] * VOXEL_SIZE; // z坐标
+    float scaled_vertices[sizeof(CUBE_VERTICES) / sizeof(float)];
+    for (size_t i = 0; i < sizeof(CUBE_VERTICES) / sizeof(float); i += 3) {
+        scaled_vertices[i] = CUBE_VERTICES[i] * VOXEL_SIZE;         // x坐标
+        scaled_vertices[i + 1] = CUBE_VERTICES[i + 1] * VOXEL_SIZE; // y坐标
+        scaled_vertices[i + 2] = CUBE_VERTICES[i + 2] * VOXEL_SIZE; // z坐标
     }
 
-    unsigned int VBO, cube_vao_;
+    unsigned int cubu_vbo_, cube_vao_;
     glGenVertexArrays(1, &cube_vao_);
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &cubu_vbo_);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubu_vbo_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(scaled_vertices), scaled_vertices,
                  GL_STATIC_DRAW);
 
@@ -408,13 +400,13 @@ int main() {
                           (void *)0);
     glEnableVertexAttribArray(0);
 
-    unsigned int instanceVBO;
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    unsigned int voxel_vbo_;
+    glGenBuffers(1, &voxel_vbo_);
+    glBindBuffer(GL_ARRAY_BUFFER, voxel_vbo_);
     glBufferData(GL_ARRAY_BUFFER, cube_positions_.size() * sizeof(glm::vec3),
                  &cube_positions_[0], GL_STATIC_DRAW);
     glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, voxel_vbo_);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glVertexAttribDivisor(1, 1);
@@ -447,7 +439,6 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         voxel_program_.use();
-        voxel_program_.setVec3("viewPos", camera.Position);
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
         glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
@@ -461,8 +452,8 @@ int main() {
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
-            glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
-            0.1f, 100.0f);
+            glm::radians(camera.Zoom),
+            (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         voxel_program_.setMat4("projection", projection);
         voxel_program_.setMat4("view", view);
@@ -500,8 +491,8 @@ int main() {
 
     // optional: de-allocate all resources once they've outlived their purpose:
     glDeleteVertexArrays(1, &cube_vao_);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &instanceVBO);
+    glDeleteBuffers(1, &cubu_vbo_);
+    glDeleteBuffers(1, &voxel_vbo_);
 
     glfwTerminate(); // clearing all previously allocated GLFW resources.
 
