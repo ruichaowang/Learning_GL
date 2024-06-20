@@ -11,7 +11,7 @@
             "name": "Debug",
             "program": "${workspaceFolder}/build/OpenGL",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}/build/"
         }
     ]
 }

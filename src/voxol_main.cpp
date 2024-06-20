@@ -67,11 +67,10 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 }
 
 /* 这个数据是模型参数 */
-const float VOXEL_SIZE = 1.024f;
+const auto SCALE_FACTOR = 3;
+const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
-
-const auto debug_draw_pano = true;
 const int debug_discard = 1;
 
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
@@ -85,6 +84,7 @@ const auto light_cube_vs = "../shaders/light_cube.vs";
 const auto light_cube_fs = "../shaders/light_cube.fs";
 const auto texture_path = "../assets/container2.png";
 const auto VOXEL_COORDINATE_PATH = "../assets/cordinate/slice_";
+const auto VOXEL_COORDINATE_3X_PATH = "../assets/cordinate/slice_3x_";
 const auto cam_front_path =
     "../assets/camera/"
     "n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
@@ -202,26 +202,29 @@ std::vector<glm::vec3> cube_positions_ = {};
  * @param VOXEL_COORDINATE_PATH 模型加载位置
  * @param cube_positions 输出的立方体位置
  * @param offset 基准值，把车移动到中心，且移动了地面的高度
+ * @param scale 放大的倍率
  */
 void GenCubePosition(const std::string &path,
-                     std::vector<glm::vec3> &cube_positions, glm::vec3 offset) {
-    auto depth = 30;
-    auto height = 100;
-    auto width = 100;
+                     std::vector<glm::vec3> &cube_positions, glm::vec3 offset, int scale) {
+    auto depth = static_cast<int>(30 * scale);
+    auto height = static_cast<int>(100 * scale);
+    auto width = static_cast<int>(100 * scale);
+    auto floor = static_cast<int>(2 * scale);
+    auto roof = static_cast<int>(8 * scale);
     /* 加载 cube 坐标,  */
-    for (int z = 2; z < 8; ++z) {
+    for (int z = floor; z < roof; ++z) {
         const std::string filename = path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 /* 填充地面 */
-                if (z == 2) {
+                if (z == floor) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                     cube_positions.push_back(temp_positon);
                 }
 
                 /* 添加边缘和立面 */
-                if (y == 0 || y == 99 || x == 0 || x == 99) {
+                if (y == 0 || y == (height - 1) || x == 0 || x == (width - 1)) {
                     glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                     cube_positions.push_back(temp_positon);
                 }
@@ -252,18 +255,20 @@ void GenCubePosition(const std::string &path,
     cube_positions.insert(cube_positions.end(), wallPositions.begin(),
                           wallPositions.end());
 
-    // 移除重复的顶点
+    /* 移除重复的顶点 */
     cube_positions.erase(
         std::unique(cube_positions.begin(), cube_positions.end()),
         cube_positions.end());
 
-    /* cube 整体移动，以及转化到真实世界坐标 */
-    for (auto &position : cube_positions) {
-        position += offset;
-    }
+    /* 先放大缩小后，再cube 整体移动，以及转化到真实世界坐标 */
     for (auto &position : cube_positions) {
         position *= VOXEL_SIZE;
     }
+
+    for (auto &position : cube_positions) {
+        position += offset;
+    }
+
 
     /* cube z 轴旋转 -90 度 */
     float rotationAngleDegrees = -90.0f;
@@ -279,6 +284,8 @@ void GenCubePosition(const std::string &path,
         position.y = -position.y;
     }
 };
+
+
 
 /* 生成外参: modelmat 的方法 */
 void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
@@ -336,7 +343,7 @@ int main() {
     camera.Position = t2_[0]; /* 相机放到前摄位置 */
 
     /* 生成立方体 */
-    GenCubePosition(VOXEL_COORDINATE_PATH, cube_positions_, VOXEL_OFFSET);
+    GenCubePosition(VOXEL_COORDINATE_3X_PATH, cube_positions_, VOXEL_OFFSET, SCALE_FACTOR);
 
     /* glfw & glad: initialize and configure */
     glfwInit();
@@ -463,7 +470,7 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(cube_vao_);
 
-        for (auto i = 0; i < CAMERA_COUNTS; i++) {
+        for (auto i = 0; i < CAMERA_COUNTS; i++) { //CAMERA_COUNTS
             glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
             voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_positions_.size());
