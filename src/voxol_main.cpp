@@ -74,9 +74,9 @@ const auto IMAGE_HEIGHT = 900.0;
 const int DEBUG_DISCARD = 1;
 
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
-const auto VOXEL_OFFSET = glm::vec3(-50.5f, -50.5f, -2.0f); //?-35
+const auto VOXEL_OFFSET = glm::vec3(-49.0f, -49.0f, -3.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
-const auto ExtrinsicOffset = glm::vec3(-0.0, 1.0, 1.5);
+const auto ExtrinsicOffset = glm::vec3(0.0, 1.425, 0.0f);
 
 const auto color_vs = "../shaders/colors.vs";
 const auto color_fs = "../shaders/colors.fs";
@@ -288,8 +288,8 @@ void GenerateCubePositionAndColor(const std::string &path,
             for (int x = 0; x < width; ++x) {
                 glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
                 /* 填充地面,当前为什么填充不满？ */
-                if (z == floor || (z == floor + 1) || (z == floor + 2)) {
-                    temp_cube_datas.emplace(temp_positon, matchCubeColor(1));
+                if (z == floor || (z == floor + 1) || (z == floor + 2)) { //
+                    temp_cube_datas.emplace(temp_positon, matchCubeColor(0));
                 }
 
                 /* 添加边缘和立面 */
@@ -371,9 +371,9 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
     }
 
     quaternion = rotation_final * quaternion;
-    translationVector += ExtrinsicOffset;
+    auto temp_trans =  translationVector + ExtrinsicOffset;
     glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternion);
-    t2_ = rotation_final * translationVector;
+    t2_ = rotation_final * temp_trans;
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
@@ -404,6 +404,7 @@ int main() {
     }
 
     camera.Position = t2_[0]; /* 相机放到前摄位置 */
+    // camera.Position = glm::vec3(0,0.2,1.5); /* 相机放到前摄位置 */
 
     /* 生成立方体 */
     GenerateCubePositionAndColor(VOXEL_COORDINATE_3X_PATH, cube_datas_,
@@ -477,11 +478,11 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, cube_datas_.size() * sizeof(CubeData),
                  &cube_datas_[0], GL_STATIC_DRAW);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(CubeData),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CubeData),
                           (void *)offsetof(CubeData, position));
     glVertexAttribDivisor(1, 1);
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(CubeData),
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(CubeData),
                           (void *)offsetof(CubeData, color));
     glVertexAttribDivisor(2, 1);
 
@@ -538,10 +539,18 @@ int main() {
         glBindVertexArray(cube_vao_);
 
         // CAMERA_COUNTS,当前是冲突了吗？为什么不停的动
-        for (auto i = 0; i < CAMERA_COUNTS; i++) {
-            glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-            voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_datas_.size());
+        if (DEBUG_DISCARD == 1) {
+            for (auto i = 0; i < CAMERA_COUNTS; i++) {
+                glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
+                voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_datas_.size());
+            }
+        } else {
+            for (auto i = 0; i < 1; i++) {
+                glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
+                voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_datas_.size());
+            }
         }
 
         /* 实例渲染结束 */

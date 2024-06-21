@@ -4,8 +4,9 @@ layout(location = 1) in vec3 aInstancePos;   // 实例位置
 layout(location = 2) in vec3 aInstanceColor; // 实例颜色
 
 out vec3 FragPos;
-out vec4 model_position;
 out vec3 ins_color;
+out vec4 model_position;
+
 
 uniform vec3 position;
 uniform mat4 model;
