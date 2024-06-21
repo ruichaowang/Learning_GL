@@ -2,6 +2,7 @@
 out vec3 FragColor;
 
 in vec4 model_position;
+in vec3 ins_color;
 
 uniform sampler2D camera_texture;
 uniform vec2 focal_lengths;
@@ -22,12 +23,12 @@ void main() {
       discard;
     }
 
-    if (final_point.x < 0 || final_point.y < 0) {
-      discard;
-    }
-    if (final_point.x > 1 || final_point.y > 1) {
+    if (final_point.x < 0 || final_point.y < 0 || final_point.x > 1 || final_point.y > 1) {
       discard;
     }
   }
   FragColor = texture(camera_texture, final_point).rgb;
+    if (debug_discard == 0) { 
+        FragColor = ins_color;
+    };
 }
