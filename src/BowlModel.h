@@ -10,18 +10,27 @@
 
 const auto SVM_CAMERA_COUNT = 4;
 class BowlModel;
-using BowlModelPtr = std::shared_ptr<BowlModel>;
+struct Obstacles {
+    float left;
+    float right;
+    float front;
+    float back;
+};
 
 class BowlModel {
+  const float BOWL_BOTTOM_RADIUS = 10000.0f;
+  const float BOWL_HEIGHT = 12500.0f;
+  const float MAX_RADIUS = 16956.58f;
+
   public:
-    static BowlModelPtr create() {
+    static std::shared_ptr<BowlModel> create() {
         return std::shared_ptr<BowlModel>(new BowlModel);
     }
 
     ~BowlModel();
     BowlModel(const BowlModel &) = delete;
     BowlModel &operator=(const BowlModel &) = delete;
-    
+
     void initModel();
 
     const std::vector<std::vector<glm::vec3>> &getModel() { return m_Model; }
@@ -39,5 +48,7 @@ class BowlModel {
 
     BowlModel();
     void init3DModel(int index);
+
+    Obstacles obstacles_;
 };
 #endif

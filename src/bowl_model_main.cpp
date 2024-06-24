@@ -214,9 +214,9 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
     model_mat = glm::inverse(model_mat);
 }
 
-void ConvertToMeters(std::vector<glm::vec3>& vertices) {
-    for (auto& vertex : vertices) {
-        vertex /= 1000.0f;  // 将坐标转换为米
+void ConvertToMeters(std::vector<glm::vec3> &vertices) {
+    for (auto &vertex : vertices) {
+        vertex /= 1000.0f; // 将坐标转换为米
     }
 }
 
@@ -225,45 +225,50 @@ struct ModelPart {
     GLuint VBO = 0, VAO = 0, texture = 0;
 };
 
-void InitBuffers(ModelPart& part) {
+void InitBuffers(ModelPart &part) {
     glGenVertexArrays(1, &part.VAO);
     glGenBuffers(1, &part.VBO);
 
     glBindVertexArray(part.VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, part.VBO);
-    glBufferData(GL_ARRAY_BUFFER, part.vertices.size() * sizeof(glm::vec3), part.vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, part.vertices.size() * sizeof(glm::vec3),
+                 part.vertices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+                          (void *)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
 
-std::vector<glm::vec3> MergeModels(const BowlModelPtr& bowlModel) {
-    const auto& modelParts = bowlModel->getModel();
+std::vector<glm::vec3>
+MergeModels(const std::shared_ptr<BowlModel> &bowlModel) {
+    const auto &modelParts = bowlModel->getModel();
     std::vector<glm::vec3> mergedVertices;
 
-    for (const auto& part : modelParts) {
+    for (const auto &part : modelParts) {
         mergedVertices.insert(mergedVertices.end(), part.begin(), part.end());
     }
 
+    // 测试只取一部分
+
+    // mergedVertices = modelParts[0];
+
     return mergedVertices;
 }
-
 
 /**
  * @brief 绘制 bowlmodel + camera projection，不用voxels, 我们先绘制碗的一部分
  */
 int main() {
-
     std::shared_ptr<BowlModel> mBowlModel = BowlModel::create();
     mBowlModel->initModel();
-    // 为了方便直接选择一片vao vbo 存放定带你
+
+    // 为了方便直接选择一片vao vbo
     std::vector<glm::vec3> vertices_merged = MergeModels(mBowlModel);
     ConvertToMeters(vertices_merged);
-
 
     for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
@@ -311,19 +316,20 @@ int main() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // 线框模式进行debug GL_LINE， 填充  GL_FILL
-    glLineWidth(5.0f);
+    if (DRAW_ONCE) {
+        // 线框模式进行debug GL_LINE， 填充  GL_FILL
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glLineWidth(30.0f);
+    }
 
     Shader bowl_program_(bwol_vs, bowl_fs);
     unsigned int bowl_vbo_, bowl_vao_;
     glGenVertexArrays(1, &bowl_vao_);
     glGenBuffers(1, &bowl_vbo_);
 
-
-
     glBindBuffer(GL_ARRAY_BUFFER, bowl_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, vertices_merged.size() * sizeof(glm::vec3), vertices_merged.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices_merged.size() * sizeof(glm::vec3),
+                 vertices_merged.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(bowl_vao_);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
@@ -339,9 +345,10 @@ int main() {
     camera_textures[5] = loadTexture(cam_back_right_path);
 
     // shader configuration
-    
+
     bowl_program_.use();
     bowl_program_.setInt("camera_texture", 0);
+    bowl_program_.setInt("debug_mesh", DRAW_ONCE);
 
     // render loop -----------
     while (!glfwWindowShouldClose(window)) {
@@ -384,19 +391,18 @@ int main() {
 
         // CAMERA_COUNTS,当前是冲突了吗？为什么不停的动
         if (DRAW_ONCE == 1) {
-             for (auto i = 0; i < 1; i++) {
+            for (auto i = 0; i < 1; i++) {
                 glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
                 bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
                 glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
             }
         } else {
-             for (auto i = 0; i < CAMERA_COUNTS; i++) {
+            for (auto i = 0; i < CAMERA_COUNTS; i++) {
                 glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
                 bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-                 glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
+                glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
             }
         }
-
 
         auto frameEnd = std::chrono::high_resolution_clock::now();
         auto frameDuration =
