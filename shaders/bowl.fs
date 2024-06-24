@@ -1,7 +1,8 @@
 #version 330 core
-out vec3 FragColor;
 
+in vec3 FragPos;
 in vec4 model_position;
+out vec3 FragColor;
 
 uniform sampler2D camera_texture;
 uniform vec2 focal_lengths;
@@ -27,5 +28,6 @@ void main() {
 //     }
 
     FragColor = texture(camera_texture, final_point).rgb;
+
     FragColor = vec3(0.5,0.5,0.1);
 }

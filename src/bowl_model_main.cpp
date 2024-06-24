@@ -311,6 +311,9 @@ int main() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // 线框模式进行debug GL_LINE， 填充  GL_FILL
+    glLineWidth(5.0f);
+
     Shader bowl_program_(bwol_vs, bowl_fs);
     unsigned int bowl_vbo_, bowl_vao_;
     glGenVertexArrays(1, &bowl_vao_);
