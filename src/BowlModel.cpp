@@ -141,13 +141,13 @@ std::vector<glm::vec3> BowlModel::buildCylinderVertices(int index) {
         12500);
     for (int i = 0; i < vctTop.size() - 1; ++i) {
         // 左三角形
-        vertices.push_back(vctTop[i]);
         vertices.push_back(vctBot[i]);
+        vertices.push_back(vctTop[i]);
         vertices.push_back(vctBot[i + 1]);
 
-        // 右三角形
-        vertices.push_back(vctTop[i]);
+        // 右三角形：
         vertices.push_back(vctBot[i + 1]);
+        vertices.push_back(vctTop[i]);
         vertices.push_back(vctTop[i + 1]);
     }
 
