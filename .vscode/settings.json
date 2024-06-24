@@ -96,7 +96,8 @@
         "random": "cpp",
         "format": "cpp",
         "stdfloat": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.clang_format_style": "{BasedOnStyle: LLVM, IndentWidth: 4,BreakBeforeBraces: Attach }"
 }

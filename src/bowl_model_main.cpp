@@ -12,6 +12,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "BowlModel.h"
 #include <iostream>
 #include <learnopengl/camera.h>
 #include <learnopengl/shader_m.h>
@@ -71,17 +72,15 @@ const auto SCALE_FACTOR = 3;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
-const int DEBUG_DISCARD = 1;
+const int DRAW_ONCE = 0;
 
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
 const auto VOXEL_OFFSET = glm::vec3(-49.0f, -49.0f, -3.0f); //?-35
 /* 外参的坐标系和车辆坐标系的变化，这个数为推测出来的 */
 const auto ExtrinsicOffset = glm::vec3(0.0, 1.425, 0.0f);
 
-const auto color_vs = "../shaders/colors.vs";
-const auto color_fs = "../shaders/colors.fs";
-const auto light_cube_vs = "../shaders/light_cube.vs";
-const auto light_cube_fs = "../shaders/light_cube.fs";
+const auto bwol_vs = "../shaders/bowl.vs";
+const auto bowl_fs = "../shaders/bowl.fs";
 const auto texture_path = "../assets/container2.png";
 const auto VOXEL_COORDINATE_PATH = "../assets/cordinate/slice_";
 const auto VOXEL_COORDINATE_3X_PATH = "../assets/cordinate/slice_3x_";
@@ -157,27 +156,6 @@ const auto quaternion_back_right =
 const auto translation_vectors_back_right =
     glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
 
-/* 立方体定点数据 */
-const float CUBE_VERTICES[] = {
-    // positions
-    -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
-    0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
-
-    -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
-    0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,
-
-    -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,
-
-    0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f,
-    0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
-
-    -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,
-    0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f,
-
-    -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,
-    0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f};
-
 /* 内外参部分 */
 const int CAMERA_COUNTS = 6;
 std::array<glm::mat3, CAMERA_COUNTS> intrinsics_ = {
@@ -194,163 +172,12 @@ std::array<glm::vec3, CAMERA_COUNTS> t2_;
 std::array<glm::mat4, CAMERA_COUNTS> model_mat_;
 std::array<unsigned int, CAMERA_COUNTS> camera_textures;
 
-std::array<glm::vec3, 19> CUBE_COLOR = {{
-    glm::vec3(255.0f, 120.0f, 50.0f),  // barrier              orange
-    glm::vec3(255.0f, 192.0f, 203.0f), // bicycle              pink
-    glm::vec3(255.0f, 255.0f, 0.0f),   // bus                  yellow
-    glm::vec3(0.0f, 150.0f, 245.0f),   // car                  blue
-    glm::vec3(0.0f, 255.0f, 255.0f),   // construction_vehicle cyan
-    glm::vec3(255.0f, 127.0f, 0.0f),   // motorcycle           dark orange
-    glm::vec3(255.0f, 0.0f, 0.0f),     // pedestrian           red
-    glm::vec3(255.0f, 240.0f, 150.0f), // traffic_cone         light yellow
-    glm::vec3(135.0f, 60.0f, 0.0f),    // trailer              brown
-    glm::vec3(160.0f, 32.0f, 240.0f),  // truck                purple
-    glm::vec3(255.0f, 0.0f, 255.0f),   // driveable_surface    dark pink
-    glm::vec3(139.0f, 137.0f, 137.0f), // unknown category
-    glm::vec3(75.0f, 0.0f, 130.0f),    // sidewalk             dark purple
-    glm::vec3(150.0f, 240.0f, 80.0f),  // terrain              light green
-    glm::vec3(230.0f, 230.0f, 250.0f), // manmade              white
-    glm::vec3(0.0f, 175.0f, 0.0f),     // vegetation           green
-    glm::vec3(0.0f, 255.0f, 127.0f),   // ego car              dark cyan
-    glm::vec3(255.0f, 99.0f, 71.0f),   // ego car
-    glm::vec3(0.0f, 191.0f, 255.0f)    // ego car
-}};
-
-glm::vec3 matchCubeColor(int data_value) {
-    const auto offset = -1;
-    if (data_value < 0 || data_value >= CUBE_COLOR.size() + offset) {
-        // 返回一个默认颜色（例如黑色）以防 data_value 超出范围
-        return glm::vec3(0.0f, 0.0f, 0.0f);
-    }
-    // 注意颜色值范围从 [0, 255] 归一化到 [0, 1]
-    return CUBE_COLOR[data_value + offset] / 255.0f;
-}
-
-/* 定义立方体的数据 */
-struct CubeData {
-    glm::vec3 position;
-    glm::vec3 color;
-    CubeData(const glm::vec3 &pos, const glm::vec3 &col)
-        : position(pos), color(col) {}
-
-    // 为了使用unordered_set，我们需要定义==操作符
-    bool operator==(const CubeData &other) const {
-        return position == other.position && color == other.color;
-    }
-};
-
-// 自定义哈希函数
-namespace std {
-template <> struct hash<glm::vec3> {
-    std::size_t operator()(const glm::vec3 &k) const {
-        return ((std::hash<float>()(k.x) ^ (std::hash<float>()(k.y) << 1)) >>
-                1) ^
-               (std::hash<float>()(k.z) << 1);
-    }
-};
-
-template <> struct hash<CubeData> {
-    std::size_t operator()(const CubeData &cd) const {
-        return (std::hash<glm::vec3>()(cd.position) ^
-                (std::hash<glm::vec3>()(cd.color) << 1));
-    }
-};
-} // namespace std
-
-std::vector<CubeData> cube_datas_ = {};
-
-/**
- * @brief 定义生成 cube 位置的方法
- *
- * @param VOXEL_COORDINATE_PATH 模型加载位置
- * @param cube_positions 输出的立方体位置
- * @param offset 基准值，把车移动到中心，且移动了地面的高度
- * @param scale 放大的倍率
+/** 生成需要的内外参，先用一个相机的来测试流程
+ *  旋转向量，在 solve pnp 中是 from the model coordinate system to the
+ * camera coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera
+ * to world， 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
+ * 负号是因为要反过来求变化方向
  */
-void GenerateCubePositionAndColor(const std::string &path,
-                                  std::vector<CubeData> &cube_datas,
-                                  glm::vec3 offset, int scale) {
-    auto depth = static_cast<int>(30 * scale);
-    auto height = static_cast<int>(100 * scale);
-    auto width = static_cast<int>(100 * scale);
-    auto floor = static_cast<int>(2 * scale);
-    auto roof = static_cast<int>(8 * scale);
-
-    // 临时存储所有数据的unordered_set，避免重复
-    std::unordered_set<CubeData> temp_cube_datas;
-
-    /* 加载 cube 坐标,  */
-    for (int z = floor; z < roof; ++z) {
-        const std::string filename = path + std::to_string(z) + ".csv";
-        std::vector<std::vector<int>> data = read_csv(filename);
-
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
-                /* 填充地面,当前为什么填充不满？ */
-                if (z == floor || (z == floor + 1) || (z == floor + 2)) { //
-                    temp_cube_datas.emplace(temp_positon, matchCubeColor(0));
-                }
-
-                /* 添加边缘和立面 */
-                if (y == 0 || y == (height - 1) || x == 0 || x == (width - 1)) {
-                    temp_cube_datas.emplace(temp_positon, matchCubeColor(0));
-                }
-
-                /* 添加 voxels */
-                if ((data[y][x] != 17) && (data[y][x] > 0) &&
-                    (data[y][x] < 20)) {
-                    temp_cube_datas.emplace(temp_positon,
-                                            matchCubeColor(data[y][x]));
-                }
-            }
-        }
-    }
-
-    // 墙壁
-    for (int z = 0; z < depth; ++z) {
-        for (int y = 0; y < height; ++y) {
-            temp_cube_datas.emplace(
-                CubeData(glm::vec3(0, y, z), matchCubeColor(0)));
-            temp_cube_datas.emplace(
-                CubeData(glm::vec3(width - 1, y, z), matchCubeColor(0)));
-        }
-        for (int x = 0; x < width; ++x) {
-            temp_cube_datas.emplace(
-                CubeData(glm::vec3(x, 0, z), matchCubeColor(0)));
-            temp_cube_datas.emplace(
-                CubeData(glm::vec3(x, height - 1, z), matchCubeColor(0)));
-        }
-    }
-
-    // 转换unordered_set到vector
-    cube_datas.assign(temp_cube_datas.begin(), temp_cube_datas.end());
-
-    /* cube z 轴旋转 -90 度 */
-    float rotationAngleDegrees = -90.0f;
-    float rotationAngleRadians = glm::radians(rotationAngleDegrees);
-    glm::mat4 rotationMatrix = glm::rotate(
-        glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
-    for (auto &cube : cube_datas) {
-        cube.position =
-            glm::vec3(rotationMatrix * glm::vec4(cube.position, 1.0f));
-    }
-
-    /* 对y轴反转 */
-    for (auto &cube : cube_datas) {
-        cube.position.y = -cube.position.y;
-    }
-
-    /* 先放大缩小后，再cube 整体移动，以及转化到真实世界坐标 */
-    for (auto &cube : cube_datas) {
-        cube.position *= VOXEL_SIZE;
-    }
-    for (auto &cube : cube_datas) {
-        cube.position += offset;
-    }
-};
-
-/* 生成外参: modelmat 的方法 */
 void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
                       glm::mat4 &model_mat, glm::vec3 &t2_,
                       const glm::vec3 &ExtrinsicOffset) {
@@ -371,7 +198,7 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
     }
 
     quaternion = rotation_final * quaternion;
-    auto temp_trans =  translationVector + ExtrinsicOffset;
+    auto temp_trans = translationVector + ExtrinsicOffset;
     glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternion);
     t2_ = rotation_final * temp_trans;
 
@@ -387,28 +214,62 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
     model_mat = glm::inverse(model_mat);
 }
 
+void ConvertToMeters(std::vector<glm::vec3>& vertices) {
+    for (auto& vertex : vertices) {
+        vertex /= 1000.0f;  // 将坐标转换为米
+    }
+}
+
+struct ModelPart {
+    std::vector<glm::vec3> vertices;
+    GLuint VBO = 0, VAO = 0, texture = 0;
+};
+
+void InitBuffers(ModelPart& part) {
+    glGenVertexArrays(1, &part.VAO);
+    glGenBuffers(1, &part.VBO);
+
+    glBindVertexArray(part.VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, part.VBO);
+    glBufferData(GL_ARRAY_BUFFER, part.vertices.size() * sizeof(glm::vec3), part.vertices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+std::vector<glm::vec3> MergeModels(const BowlModelPtr& bowlModel) {
+    const auto& modelParts = bowlModel->getModel();
+    std::vector<glm::vec3> mergedVertices;
+
+    for (const auto& part : modelParts) {
+        mergedVertices.insert(mergedVertices.end(), part.begin(), part.end());
+    }
+
+    return mergedVertices;
+}
+
+
 /**
- * @brief 绘制 Voxel + camera projection
+ * @brief 绘制 bowlmodel + camera projection，不用voxels, 我们先绘制碗的一部分
  */
 int main() {
-    /** 生成需要的内外参，先用一个相机的来测试流程
-     *  旋转向量，在 solve pnp 中是 from the model coordinate system to the
-     * camera coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera
-     * to world， 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
-     * 负号是因为要反过来求变化方向
-     */
+
+    std::shared_ptr<BowlModel> mBowlModel = BowlModel::create();
+    mBowlModel->initModel();
+    // 为了方便直接选择一片vao vbo 存放定带你
+    std::vector<glm::vec3> vertices_merged = MergeModels(mBowlModel);
+    ConvertToMeters(vertices_merged);
+
 
     for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
                          model_mat_[i], t2_[i], ExtrinsicOffset);
     }
-
     camera.Position = t2_[0]; /* 相机放到前摄位置 */
-    // camera.Position = glm::vec3(0,0.2,1.5); /* 相机放到前摄位置 */
-
-    /* 生成立方体 */
-    GenerateCubePositionAndColor(VOXEL_COORDINATE_3X_PATH, cube_datas_,
-                                 VOXEL_OFFSET, SCALE_FACTOR);
 
     /* glfw & glad: initialize and configure */
     glfwInit();
@@ -446,51 +307,25 @@ int main() {
     // configure global opengl state -----------------------------
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
-    // 当前的面不对
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-    // glFrontFace(GL_CCW);
+    Shader bowl_program_(bwol_vs, bowl_fs);
+    unsigned int bowl_vbo_, bowl_vao_;
+    glGenVertexArrays(1, &bowl_vao_);
+    glGenBuffers(1, &bowl_vbo_);
 
-    // build and compile our shader zprogram
-    Shader voxel_program_(color_vs, color_fs);
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
 
-    /* 缩放顶点数据 */
-    float scaled_vertices[sizeof(CUBE_VERTICES) / sizeof(float)];
-    for (size_t i = 0; i < sizeof(CUBE_VERTICES) / sizeof(float); i += 3) {
-        scaled_vertices[i] = CUBE_VERTICES[i] * VOXEL_SIZE;         // x坐标
-        scaled_vertices[i + 1] = CUBE_VERTICES[i + 1] * VOXEL_SIZE; // y坐标
-        scaled_vertices[i + 2] = CUBE_VERTICES[i + 2] * VOXEL_SIZE; // z坐标
-    }
 
-    unsigned int cubu_vbo_, cube_vao_;
-    glGenVertexArrays(1, &cube_vao_);
-    glGenBuffers(1, &cubu_vbo_);
-
-    glBindBuffer(GL_ARRAY_BUFFER, cubu_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(scaled_vertices), scaled_vertices,
+    glBindBuffer(GL_ARRAY_BUFFER, bowl_vbo_);
+    glBufferData(GL_ARRAY_BUFFER, vertices_merged.size() * sizeof(glm::vec3), vertices_merged.data(),
                  GL_STATIC_DRAW);
 
-    glBindVertexArray(cube_vao_);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+    glBindVertexArray(bowl_vao_);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
                           (void *)0);
     glEnableVertexAttribArray(0);
-
-    unsigned int voxel_vbo_;
-    glGenBuffers(1, &voxel_vbo_);
-    glBindBuffer(GL_ARRAY_BUFFER, voxel_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, cube_datas_.size() * sizeof(CubeData),
-                 &cube_datas_[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CubeData),
-                          (void *)offsetof(CubeData, position));
-    glVertexAttribDivisor(1, 1);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(CubeData),
-                          (void *)offsetof(CubeData, color));
-    glVertexAttribDivisor(2, 1);
 
     /* load textures */
     camera_textures[0] = loadTexture(cam_front_path);
@@ -501,9 +336,9 @@ int main() {
     camera_textures[5] = loadTexture(cam_back_right_path);
 
     // shader configuration
-    voxel_program_.use();
-    voxel_program_.setInt("camera_texture", 0);
-    voxel_program_.setInt("debug_discard", DEBUG_DISCARD);
+    
+    bowl_program_.use();
+    bowl_program_.setInt("camera_texture", 0);
 
     // render loop -----------
     while (!glfwWindowShouldClose(window)) {
@@ -519,7 +354,7 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        voxel_program_.use();
+        bowl_program_.use();
 
         /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
         glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
@@ -528,43 +363,37 @@ int main() {
             glm::vec2(intrinsics_[0][0][2] / IMAGE_WIDTH,
                       intrinsics_[0][1][2] / IMAGE_HEIGHT);
 
-        voxel_program_.setVec2("focal_lengths", focal_length);
-        voxel_program_.setVec2("camera_principal_point", principal_point);
+        bowl_program_.setVec2("focal_lengths", focal_length);
+        bowl_program_.setVec2("camera_principal_point", principal_point);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.Zoom),
             (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        voxel_program_.setMat4("projection", projection);
-        voxel_program_.setMat4("view", view);
+        bowl_program_.setMat4("projection", projection);
+        bowl_program_.setMat4("view", view);
 
         /* 实例渲染，instance rendering */
-        voxel_program_.setInt("camera_texture", 0);
+        bowl_program_.setInt("camera_texture", 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindVertexArray(cube_vao_);
+        glBindVertexArray(bowl_vao_);
 
         // CAMERA_COUNTS,当前是冲突了吗？为什么不停的动
-        if (DEBUG_DISCARD == 1) {
-            for (auto i = 0; i < CAMERA_COUNTS; i++) {
+        if (DRAW_ONCE == 1) {
+             for (auto i = 0; i < 1; i++) {
                 glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-                voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-                glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_datas_.size());
+                bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
+                glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
             }
         } else {
-            for (auto i = 0; i < 1; i++) {
+             for (auto i = 0; i < CAMERA_COUNTS; i++) {
                 glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-                voxel_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-                glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_datas_.size());
+                bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
+                 glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
             }
         }
 
-        /* 实例渲染结束 */
-        if (0) {
-            /* 绘制一次 */
-            voxel_program_.setMat4("model", glm::mat4(1.0f));
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
 
         auto frameEnd = std::chrono::high_resolution_clock::now();
         auto frameDuration =
@@ -580,9 +409,8 @@ int main() {
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    glDeleteVertexArrays(1, &cube_vao_);
-    glDeleteBuffers(1, &cubu_vbo_);
-    glDeleteBuffers(1, &voxel_vbo_);
+    glDeleteVertexArrays(1, &bowl_vao_);
+    glDeleteBuffers(1, &bowl_vbo_);
 
     glfwTerminate(); // clearing all previously allocated GLFW resources.
 

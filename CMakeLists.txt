@@ -13,8 +13,8 @@ include_directories(./ ./include ./shaders ./include/glad ./include/KHR ./includ
 find_package(GLEW REQUIRED)
 
 # 更换我们编译的 demo
-# add_executable(OpenGL src/glad.c src/main.cpp)
-add_executable(OpenGL src/glad.c src/voxol_main.cpp)
+add_executable(OpenGL src/glad.c src/bowl_model_main.cpp src/BowlModel.cpp)
+# add_executable(OpenGL src/glad.c src/voxol_main.cpp)
 
 target_link_libraries(OpenGL glfw)
 target_link_libraries(OpenGL GLEW::GLEW)
