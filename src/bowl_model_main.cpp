@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include "BowlModel.h"
 #include <iostream>
@@ -19,27 +20,13 @@
 #include <unistd.h>
 #include <unordered_set>
 
+
 // function declarations
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
-
-// settings
-const unsigned int SCREEN_WIDTH = 1920;
-const unsigned int SCREEN_HEIGHT = 1080;
-
-// camera
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f), -0.0f,
-              89.0f); //-90
-float lastX = SCREEN_WIDTH / 2.0f;
-float lastY = SCREEN_HEIGHT / 2.0f;
-bool firstMouse = true;
-
-// timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 
 /* 函数用于读取CSV文件并返回一个整数的二维向量 */
 std::vector<std::vector<int>> read_csv(const std::string &filename) {
@@ -67,12 +54,29 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
+
+
 /* 这个数据是模型参数 */
+std::vector<glm::vec3> obstacle_position_;
 const auto SCALE_FACTOR = 3;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
 const int DRAW_ONCE = 1;
+// settings
+const unsigned int SCREEN_WIDTH = 1920;
+const unsigned int SCREEN_HEIGHT = 1080;
+
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f), -0.0f,
+              89.0f); //-90
+float lastX = SCREEN_WIDTH / 2.0f;
+float lastY = SCREEN_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
 const auto VOXEL_OFFSET = glm::vec3(-49.0f, -49.0f, -3.0f); //?-35
@@ -225,7 +229,6 @@ struct ModelPart {
     GLuint VBO = 0, VAO = 0, texture = 0;
 };
 
-
 void InitBuffers(ModelPart &part) {
     glGenVertexArrays(1, &part.VAO);
     glGenBuffers(1, &part.VBO);
@@ -260,16 +263,151 @@ MergeModels(const std::shared_ptr<BowlModel> &bowlModel) {
     return mergedVertices;
 }
 
+// 障碍物都在2D 平面进行统计，grid 的维度大小是 300 * 300
+struct VoxelGrid {
+    std::vector<std::vector<bool>> grid;
+    float resolution;
+    int width, height, depth; 
+};
+
+VoxelGrid GenerateObstaclePosition(const std::string &path,
+                              std::vector<glm::vec3> &obstacles,
+                              glm::vec3 offset, int scale) {
+    auto height = static_cast<int>(100 * scale);
+    auto width = static_cast<int>(100 * scale);
+    auto floor = static_cast<int>(2 * scale);
+    auto roof = static_cast<int>(8 * scale);
+
+    /* 生成voxels */
+    VoxelGrid voxels;
+    voxels.resolution = VOXEL_SIZE;
+    voxels.width = width;
+    voxels.height = height;
+    voxels.depth = roof - floor;  //暂时不需要这个参数
+    /* 初始化 grid */ 
+    voxels.grid = std::vector<std::vector<bool>>(
+                   height, std::vector<bool>(voxels.width, false));
+
+    std::unordered_set<glm::vec3> temp_obstacles;
+
+    /* 加载 坐标,  */
+    for (int z = floor; z < roof; ++z) {
+        const std::string filename = path + std::to_string(z) + ".csv";
+        std::vector<std::vector<int>> data = read_csv(filename);
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                /* 删除掉高度 */
+                glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 0 * 1.0f);
+
+                /* 添加 voxels */
+                if ((data[y][x] != 11) && (data[y][x] != 17) &&
+                    (data[y][x] > 0) && (data[y][x] < 20)) {
+                    temp_obstacles.emplace(temp_positon);
+                }
+            }
+        }
+    }
+
+    // 去重完毕，返回 vector
+    obstacles.insert(obstacles.end(), temp_obstacles.begin(),
+                     temp_obstacles.end());
+
+    /* cube z 轴旋转 -90 度 */
+    float rotationAngleDegrees = -90.0f;
+    float rotationAngleRadians = glm::radians(rotationAngleDegrees);
+    glm::mat4 rotationMatrix = glm::rotate(
+        glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    for (auto &obstacle : obstacles) {
+        obstacle = glm::vec3(rotationMatrix * glm::vec4(obstacle, 1.0f));
+    }
+
+    /* 对y轴反转 */
+    for (auto &obstacle : obstacles) {
+        obstacle.y = -obstacle.y;
+    }
+
+    /* 先放大缩小后，再cube 整体移动，以及转化到真实世界坐标 */
+    for (auto &obstacle : obstacles) {
+        obstacle *= VOXEL_SIZE;
+    }
+    for (auto &obstacle : obstacles) {
+        obstacle += offset;
+    }
+
+    /* obstacles in glm to 3d vectors*/
+    for (const auto &obstacle : obstacles) {
+        const int x = static_cast<int>(obstacle.x / VOXEL_SIZE);
+        const int y = static_cast<int>(obstacle.y / VOXEL_SIZE);
+        if (x >= 0 && x < voxels.width && y >= 0 && y < voxels.height) {
+            voxels.grid[x][y] = true;
+        }
+    }
+
+    return voxels;
+};
+
+float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec3 pos, glm::vec3 direction) {
+    int steps = 0;
+    float distance = 0.0f;
+
+    while (true) {
+        // 计算当前检测的位置
+        glm::vec3 current_pos = pos + direction * static_cast<float>(steps) * voxels.resolution;
+
+        // 对应位置的 voxel 索引
+        int x = static_cast<int>(current_pos.x / voxels.resolution);
+        int y = static_cast<int>(current_pos.y / voxels.resolution);
+
+        if (x < 0 || x >= voxels.width || y < 0 || y >= voxels.height) {
+            // 当前位置超出范围
+            break;
+        }
+        
+        // 当检测到障碍物的时候
+        if (voxels.grid[x][y]) {
+            distance = steps * voxels.resolution;
+            break;
+        }
+
+        steps++;
+    }
+    
+    return distance == 0.0f ? std::numeric_limits<float>::infinity() : distance;
+}
+
+void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3>& vertices, const VoxelGrid& voxels, float radius) {
+    for (auto& vertex : vertices) {
+        float angle = atan2(vertex.y, vertex.x);
+        float distanceFromCenter = glm::length(glm::vec2(vertex.y, vertex.x));
+        
+        glm::vec3 direction(cos(angle), sin(angle), 0.0f);
+        float obstacleDistance = DetectObstacleDistance(voxels, glm::vec3(0.0f), direction);
+        
+        float scale = std::min(1.0f, obstacleDistance / radius);
+        distanceFromCenter *= scale;
+        
+        vertex.y = distanceFromCenter * cos(angle);
+        vertex.x = distanceFromCenter * sin(angle);
+    }
+}
+
 /**
  * @brief 绘制 bowlmodel + camera projection，不用voxels, 我们先绘制碗的一部分
  */
 int main() {
+    /* 生成障碍物点云 */
+    VoxelGrid voxels = GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH, obstacle_position_,
+                             VOXEL_OFFSET, SCALE_FACTOR);
+
+    /* 获取碗模型，为方便验证，先合并到一起再转化到 m，再进行调整 */
     std::shared_ptr<BowlModel> mBowlModel = BowlModel::create();
     mBowlModel->initModel();
 
     // 为了方便直接选择一片vao vbo
     std::vector<glm::vec3> vertices_merged = MergeModels(mBowlModel);
     ConvertToMeters(vertices_merged);
+    AdjustVerticesBasedOnVoxels(vertices_merged, voxels, 10.0f); 
 
     for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
@@ -321,9 +459,6 @@ int main() {
         // 线框模式进行debug GL_LINE， 填充  GL_FILL
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glLineWidth(30.0f);
-
-        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-        glPointSize(10.0f);
     }
 
     Shader bowl_program_(bwol_vs, bowl_fs);
