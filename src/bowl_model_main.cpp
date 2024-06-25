@@ -62,7 +62,8 @@ const auto SCALE_FACTOR = 3;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
-const int DRAW_ONCE = 1;
+const int DRAW_ONCE = 0;
+
 // settings
 const unsigned int SCREEN_WIDTH = 1920;
 const unsigned int SCREEN_HEIGHT = 1080;
@@ -340,20 +341,20 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
         const int x = static_cast<int>(obstacle.x / VOXEL_SIZE);
         const int y = static_cast<int>(obstacle.y / VOXEL_SIZE);
         if (x >= 0 && x < voxels.width && y >= 0 && y < voxels.height) {
-            voxels.grid[x][y] = true;
+            voxels.grid[y][x] = true;
         }
     }
 
     return voxels;
 };
 
-float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec3 pos, glm::vec3 direction) {
+float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec2 &pos, glm::vec2 &direction) {
     int steps = 0;
-    float distance = 0.0f;
+    float distance = std::numeric_limits<float>::infinity(); // 初始值设为无穷大
 
     while (true) {
         // 计算当前检测的位置
-        glm::vec3 current_pos = pos + direction * static_cast<float>(steps) * voxels.resolution;
+        glm::vec2 current_pos = pos + direction * static_cast<float>(steps) * voxels.resolution;
 
         // 对应位置的 voxel 索引
         int x = static_cast<int>(current_pos.x / voxels.resolution);
@@ -365,7 +366,7 @@ float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec3 pos, glm::vec3 d
         }
         
         // 当检测到障碍物的时候
-        if (voxels.grid[x][y]) {
+        if (voxels.grid[y][x]) {
             distance = steps * voxels.resolution;
             break;
         }
@@ -373,22 +374,23 @@ float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec3 pos, glm::vec3 d
         steps++;
     }
     
-    return distance == 0.0f ? std::numeric_limits<float>::infinity() : distance;
+    return distance;
 }
 
 void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3>& vertices, const VoxelGrid& voxels, float radius) {
+    auto center = glm::vec2(0.0f, 0.0f);
     for (auto& vertex : vertices) {
         float angle = atan2(vertex.y, vertex.x);
-        float distanceFromCenter = glm::length(glm::vec2(vertex.y, vertex.x));
+        float distanceFromCenter = glm::length(glm::vec2(vertex.x, vertex.y));
         
-        glm::vec3 direction(cos(angle), sin(angle), 0.0f);
-        float obstacleDistance = DetectObstacleDistance(voxels, glm::vec3(0.0f), direction);
+        glm::vec2 direction(cos(angle), sin(angle));
+        float obstacleDistance = DetectObstacleDistance(voxels, center, direction);
         
         float scale = std::min(1.0f, obstacleDistance / radius);
         distanceFromCenter *= scale;
         
-        vertex.y = distanceFromCenter * cos(angle);
-        vertex.x = distanceFromCenter * sin(angle);
+        vertex.x = distanceFromCenter * cos(angle);
+        vertex.y = distanceFromCenter * sin(angle);
     }
 }
 
