@@ -68,7 +68,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
-std::vector<glm::vec3> obstacle_position;
+std::vector<glm::vec3> obstacle_position_;
 
 /* 这个数据是模型参数 */
 const auto SCALE_FACTOR = 3;
@@ -98,15 +98,15 @@ struct ModelPart {
  * @brief 生成障碍物的地图，
  * 为了方便检测障碍物信息，要删除掉 drivable surface ，把立体信息去除
  * glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
- * 
- * @param path 
- * @param obstacles 
- * @param offset 
- * @param scale 
+ *
+ * @param path
+ * @param obstacles
+ * @param offset
+ * @param scale
  */
-void GenerateCubePositionAndColor(const std::string &path,
-                                  std::vector<glm::vec3> &obstacles,
-                                  glm::vec3 offset, int scale) {
+void GenerateObstaclePosition(const std::string &path,
+                              std::vector<glm::vec3> &obstacles,
+                              glm::vec3 offset, int scale) {
     auto height = static_cast<int>(100 * scale);
     auto width = static_cast<int>(100 * scale);
     auto floor = static_cast<int>(2 * scale);
@@ -122,19 +122,20 @@ void GenerateCubePositionAndColor(const std::string &path,
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 /* 删除掉高度 */
-                glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 1 * 1.0f);
+                glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 0 * 1.0f);
 
                 /* 添加 voxels */
-                if ((data[y][x] != 11) && (data[y][x] != 17) && (data[y][x] > 0) &&
-                    (data[y][x] < 20)) {
+                if ((data[y][x] != 11) && (data[y][x] != 17) &&
+                    (data[y][x] > 0) && (data[y][x] < 20)) {
                     temp_obstacles.emplace(temp_positon);
                 }
             }
         }
     }
 
-    // 去重完毕，返回 vector 
-    obstacles.insert(obstacles.end(), temp_obstacles.begin(), temp_obstacles.end());
+    // 去重完毕，返回 vector
+    obstacles.insert(obstacles.end(), temp_obstacles.begin(),
+                     temp_obstacles.end());
 
     /* cube z 轴旋转 -90 度 */
     float rotationAngleDegrees = -90.0f;
@@ -182,8 +183,8 @@ void InitBuffers(ModelPart &part) {
  */
 int main() {
     /* 生成障碍物点云 */
-    GenerateCubePositionAndColor(VOXEL_COORDINATE_3X_PATH, obstacle_position,
-                                 VOXEL_OFFSET, SCALE_FACTOR);
+    GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH, obstacle_position_,
+                             VOXEL_OFFSET, SCALE_FACTOR);
 
     camera.Position = glm::vec3(0, 0, 5); /* 相机放到前摄位置 */
 
@@ -238,8 +239,8 @@ int main() {
     glGenBuffers(1, &bowl_vbo_);
 
     glBindBuffer(GL_ARRAY_BUFFER, bowl_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, obstacle_position.size() * sizeof(glm::vec3),
-                 obstacle_position.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, obstacle_position_.size() * sizeof(glm::vec3),
+                 obstacle_position_.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(bowl_vao_);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
@@ -283,11 +284,11 @@ int main() {
 
         if (DRAW_ONCE == 1) {
             for (auto i = 0; i < 1; i++) {
-                glDrawArrays(GL_TRIANGLES, 0, obstacle_position.size());
+                glDrawArrays(GL_TRIANGLES, 0, obstacle_position_.size());
             }
         } else {
             for (auto i = 0; i < CAMERA_COUNTS; i++) {
-                glDrawArrays(GL_TRIANGLES, 0, obstacle_position.size());
+                glDrawArrays(GL_TRIANGLES, 0, obstacle_position_.size());
             }
         }
 
