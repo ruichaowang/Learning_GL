@@ -71,7 +71,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 std::vector<glm::vec3> obstacle_position_;
 
 /* 这个数据是模型参数 */
-const auto SCALE_FACTOR = 3;
+const auto SCALE_FACTOR = 1;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
@@ -99,6 +99,8 @@ struct ModelPart {
  * 为了方便检测障碍物信息，要删除掉 drivable surface ，把立体信息去除
  * glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
  *
+ * 为了我们做运算，我们只取出来中心值范围+-10m的数据
+ *
  * @param path
  * @param obstacles
  * @param offset
@@ -114,13 +116,19 @@ void GenerateObstaclePosition(const std::string &path,
 
     std::unordered_set<glm::vec3> temp_obstacles;
 
+    const auto voxel_center = glm::vec2(width / 2, height / 2);
+    const int y_min = voxel_center.y - 10 * scale;
+    const int y_max = voxel_center.y + 10 * scale;
+    const int x_min = voxel_center.x - 10 * scale;
+    const int x_max = voxel_center.x + 10 * scale;
+
     /* 加载 坐标,  */
     for (int z = floor; z < roof; ++z) {
         const std::string filename = path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
+        for (int y = y_min; y < y_max; ++y) {
+            for (int x = x_min; x < x_max; ++x) {
                 /* 删除掉高度 */
                 glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 0 * 1.0f);
 
@@ -183,8 +191,13 @@ void InitBuffers(ModelPart &part) {
  */
 int main() {
     /* 生成障碍物点云 */
-    GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH, obstacle_position_,
-                             VOXEL_OFFSET, SCALE_FACTOR);
+    if (SCALE_FACTOR == 1) {
+        GenerateObstaclePosition(VOXEL_COORDINATE_PATH, obstacle_position_,
+                                 VOXEL_OFFSET, SCALE_FACTOR);
+    } else {
+        GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH, obstacle_position_,
+                                 VOXEL_OFFSET, SCALE_FACTOR);
+    }
 
     camera.Position = glm::vec3(0, 0, 5); /* 相机放到前摄位置 */
 

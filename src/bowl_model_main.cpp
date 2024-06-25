@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <unordered_set>
 
-
 // function declarations
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
@@ -54,23 +53,23 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
-
-
 /* 这个数据是模型参数 */
 std::vector<glm::vec3> obstacle_position_;
-const auto SCALE_FACTOR = 3;
+const auto SCALE_FACTOR = 1;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
-const int DRAW_ONCE = 0;
+const int DRAW_ONCE = 1;
 
 // settings
 const unsigned int SCREEN_WIDTH = 1920;
 const unsigned int SCREEN_HEIGHT = 1080;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 1.0f), -0.0f,
-              89.0f); //-90
+const auto camera_pos = glm::vec3(0.0f, 0.0f, 5.0f);
+const auto world_up = glm::vec3(0.0f, 0.0f, 1.0f);
+Camera camera(camera_pos, world_up, -0.0f, 89.0f);
+
 float lastX = SCREEN_WIDTH / 2.0f;
 float lastY = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -219,6 +218,29 @@ void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
     model_mat = glm::inverse(model_mat);
 }
 
+void Save2DArrayToFile(const std::vector<std::vector<bool>> &array,
+                       const std::string &filename) {
+    std::ofstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file for writing: " << filename
+                  << std::endl;
+        return;
+    }
+
+    for (const auto &row : array) {
+        for (size_t col = 0; col < row.size(); ++col) {
+            file << row[col];
+            if (col < row.size() - 1) {
+                file << ", ";
+            }
+        }
+        file << '\n';
+    }
+
+    file.close();
+}
+
 void ConvertToMeters(std::vector<glm::vec3> &vertices) {
     for (auto &vertex : vertices) {
         vertex /= 1000.0f; // 将坐标转换为米
@@ -264,16 +286,18 @@ MergeModels(const std::shared_ptr<BowlModel> &bowlModel) {
     return mergedVertices;
 }
 
-// 障碍物都在2D 平面进行统计，grid 的维度大小是 300 * 300
+// 障碍物都在2D 平面进行统计，grid 的维度大小是 100 * 100
+// 我们关心的是 中心10m之内的数据
 struct VoxelGrid {
     std::vector<std::vector<bool>> grid;
+    glm::vec3 offset;
     float resolution;
-    int width, height, depth; 
+    int width, height, depth;
 };
 
 VoxelGrid GenerateObstaclePosition(const std::string &path,
-                              std::vector<glm::vec3> &obstacles,
-                              glm::vec3 offset, int scale) {
+                                   std::vector<glm::vec3> &obstacles,
+                                   glm::vec3 offset, int scale) {
     auto height = static_cast<int>(100 * scale);
     auto width = static_cast<int>(100 * scale);
     auto floor = static_cast<int>(2 * scale);
@@ -284,10 +308,11 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
     voxels.resolution = VOXEL_SIZE;
     voxels.width = width;
     voxels.height = height;
-    voxels.depth = roof - floor;  //暂时不需要这个参数
-    /* 初始化 grid */ 
+    voxels.depth = roof - floor; // 暂时不需要这个参数
+    /* 初始化 grid */
     voxels.grid = std::vector<std::vector<bool>>(
-                   height, std::vector<bool>(voxels.width, false));
+        2* 10*scale, std::vector<bool>( 2*10*scale, false));
+    voxels.offset = offset;
 
     std::unordered_set<glm::vec3> temp_obstacles;
 
@@ -332,39 +357,47 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
     for (auto &obstacle : obstacles) {
         obstacle *= VOXEL_SIZE;
     }
-    for (auto &obstacle : obstacles) {
-        obstacle += offset;
-    }
+    // 因为array 只有正数，所以不能在这里用 offset 进行偏移
+    // for (auto &obstacle : obstacles) {
+    //     obstacle += offset;
+    // }
 
     /* obstacles in glm to 3d vectors*/
     for (const auto &obstacle : obstacles) {
-        const int x = static_cast<int>(obstacle.x / VOXEL_SIZE);
-        const int y = static_cast<int>(obstacle.y / VOXEL_SIZE);
-        if (x >= 0 && x < voxels.width && y >= 0 && y < voxels.height) {
-            voxels.grid[y][x] = true;
+        const int x = static_cast<int>(obstacle.x );
+        const int y = static_cast<int>(obstacle.y);
+        if (x >= (voxels.width / 2 - 10 * scale) &&
+            x < (voxels.width / 2 + 10 * scale) &&
+            y >= (voxels.height / 2 - 10 * scale) &&
+            y < (voxels.height / 2 + 10 * scale)) {
+            voxels.grid[y - (voxels.height / 2 - 10 * scale)][x - (voxels.width / 2 - 10 * scale)] = true;
         }
     }
 
     return voxels;
 };
 
-float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec2 &pos, glm::vec2 &direction) {
+float DetectObstacleDistance(const VoxelGrid &voxels, glm::vec2 &pos,
+                             glm::vec2 &direction) {
     int steps = 0;
     float distance = std::numeric_limits<float>::infinity(); // 初始值设为无穷大
 
     while (true) {
         // 计算当前检测的位置
-        glm::vec2 current_pos = pos + direction * static_cast<float>(steps) * voxels.resolution;
+        glm::vec2 current_pos =
+            pos + direction * static_cast<float>(steps) * voxels.resolution;
 
         // 对应位置的 voxel 索引
-        int x = static_cast<int>(current_pos.x / voxels.resolution);
-        int y = static_cast<int>(current_pos.y / voxels.resolution);
+        int x = static_cast<int>(current_pos.x / voxels.resolution +
+                                 voxels.offset.x);
+        int y = static_cast<int>(current_pos.y / voxels.resolution +
+                                 voxels.offset.y);
 
         if (x < 0 || x >= voxels.width || y < 0 || y >= voxels.height) {
             // 当前位置超出范围
             break;
         }
-        
+
         // 当检测到障碍物的时候
         if (voxels.grid[y][x]) {
             distance = steps * voxels.resolution;
@@ -373,25 +406,45 @@ float DetectObstacleDistance(const VoxelGrid& voxels, glm::vec2 &pos, glm::vec2 
 
         steps++;
     }
-    
+
     return distance;
 }
 
-void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3>& vertices, const VoxelGrid& voxels, float radius) {
+void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3> &vertices,
+                                 const VoxelGrid &voxels, float radius) {
     auto center = glm::vec2(0.0f, 0.0f);
-    for (auto& vertex : vertices) {
+    for (auto &vertex : vertices) {
         float angle = atan2(vertex.y, vertex.x);
         float distanceFromCenter = glm::length(glm::vec2(vertex.x, vertex.y));
-        
+
         glm::vec2 direction(cos(angle), sin(angle));
-        float obstacleDistance = DetectObstacleDistance(voxels, center, direction);
-        
+        float obstacleDistance =
+            DetectObstacleDistance(voxels, center, direction);
+
         float scale = std::min(1.0f, obstacleDistance / radius);
         distanceFromCenter *= scale;
-        
+
         vertex.x = distanceFromCenter * cos(angle);
         vertex.y = distanceFromCenter * sin(angle);
     }
+}
+
+void SaveVerticesToCSV(const std::vector<glm::vec3> &vertices,
+                       const std::string &filename) {
+    std::ofstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file for writing: " << filename
+                  << std::endl;
+        return;
+    }
+
+    // 写入数据
+    for (const auto &vertex : vertices) {
+        file << vertex.x << ", " << vertex.y << ", " << vertex.z << '\n';
+    }
+
+    file.close();
 }
 
 /**
@@ -399,8 +452,9 @@ void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3>& vertices, const VoxelGr
  */
 int main() {
     /* 生成障碍物点云 */
-    VoxelGrid voxels = GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH, obstacle_position_,
-                             VOXEL_OFFSET, SCALE_FACTOR);
+    VoxelGrid voxels = GenerateObstaclePosition(
+        VOXEL_COORDINATE_PATH, obstacle_position_, VOXEL_OFFSET, SCALE_FACTOR);
+    Save2DArrayToFile(voxels.grid, "output.csv");
 
     /* 获取碗模型，为方便验证，先合并到一起再转化到 m，再进行调整 */
     std::shared_ptr<BowlModel> mBowlModel = BowlModel::create();
@@ -409,7 +463,10 @@ int main() {
     // 为了方便直接选择一片vao vbo
     std::vector<glm::vec3> vertices_merged = MergeModels(mBowlModel);
     ConvertToMeters(vertices_merged);
-    AdjustVerticesBasedOnVoxels(vertices_merged, voxels, 10.0f); 
+
+    SaveVerticesToCSV(vertices_merged, "vertices_raw.csv");
+    AdjustVerticesBasedOnVoxels(vertices_merged, voxels, 10.0f);
+    SaveVerticesToCSV(vertices_merged, "vertices_scale.csv");
 
     for (auto i = 0; i < 6; i++) {
         GenerateModelMat(quaternions_[i], translation_vectors_[i],
