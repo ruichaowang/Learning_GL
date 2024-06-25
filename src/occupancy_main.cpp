@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include "BowlModel.h"
 #include <iostream>
@@ -67,12 +68,15 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
     return data;
 }
 
+std::vector<glm::vec3> obstacle_position;
+
 /* 这个数据是模型参数 */
 const auto SCALE_FACTOR = 3;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
 const int DRAW_ONCE = 1;
+const int CAMERA_COUNTS = 6;
 
 /* 把车挪到整个模型的中心,调节地面的基准 -2 是推测值 */
 const auto VOXEL_OFFSET = glm::vec3(-49.0f, -49.0f, -3.0f); //?-35
@@ -84,147 +88,76 @@ const auto bowl_fs = "../shaders/bowl.fs";
 const auto texture_path = "../assets/container2.png";
 const auto VOXEL_COORDINATE_PATH = "../assets/cordinate/slice_";
 const auto VOXEL_COORDINATE_3X_PATH = "../assets/cordinate/slice_3x_";
-const auto cam_front_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_FRONT__1538984245412460.jpg";
-const auto cam_back_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_BACK__1538984245437525.jpg";
-const auto cam_front_left_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_FRONT_LEFT__1538984245404844.jpg";
-const auto cam_front_right_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_FRONT_RIGHT__1538984245420339.jpg";
-const auto cam_back_left_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_BACK_LEFT__1538984245447423.jpg";
-const auto cam_back_right_path =
-    "../assets/camera/"
-    "n015-2018-10-08-15-36-50+0800__CAM_BACK_RIGHT__1538984245427893.jpg";
-
-const auto intrinsics_front =
-    glm::mat3(1266.417203046554, 0.0, 816.2670197447984, 0.0, 1266.417203046554,
-              491.50706579294757, 0.0, 0.0, 1.0);
-const auto quaternion_front =
-    glm::quat(0.4998015430569128, -0.5030316162024876, 0.4997798114386805,
-              -0.49737083824542755);
-const auto translation_vectors_front =
-    glm::vec3(1.70079118954, 0.0159456324149, 1.51095763913);
-
-const auto intrinsics_rear =
-    glm::mat3(809.2209905677063, 0.0, 829.2196003259838, 0.0, 809.2209905677063,
-              481.77842384512485, 0.0, 0.0, 1.0);
-const auto quaternion_rear = glm::quat(0.5037872666382278, -0.49740249788611096,
-                                       -0.4941850223835201, 0.5045496097725578);
-const auto translation_vectors_rear =
-    glm::vec3(0.0283260309358, 0.00345136761476, 1.57910346144);
-
-const auto intrinsics_front_left =
-    glm::mat3(1272.5979470598488, 0.0, 826.6154927353808, 0.0,
-              1272.5979470598488, 479.75165386361925, 0.0, 0.0, 1.0);
-const auto quaternion_front_left =
-    glm::quat(0.6757265034669446, -0.6736266522251881, 0.21214015046209478,
-              -0.21122827103904068);
-const auto translation_vectors_front_left =
-    glm::vec3(1.52387798135, 0.494631336551, 1.50932822144);
-
-const auto intrinsics_front_right =
-    glm::mat3(1260.8474446004698, 0.0, 807.968244525554, 0.0,
-              1260.8474446004698, 495.3344268742088, 0.0, 0.0, 1.0);
-const auto quaternion_front_right =
-    glm::quat(0.2060347966337182, -0.2026940577919598, 0.6824507824531167,
-              -0.6713610884174485);
-const auto translation_vectors_front_right =
-    glm::vec3(1.5508477543, -0.493404796419, 1.49574800619);
-
-const auto intrinsics_back_left =
-    glm::mat3(1256.7414812095406, 0.0, 792.1125740759628, 0.0,
-              1256.7414812095406, 492.7757465151356, 0.0, 0.0, 1.0);
-const auto quaternion_back_left =
-    glm::quat(0.6924185592174665, -0.7031619420114925, -0.11648342771943819,
-              0.11203317912370753);
-const auto translation_vectors_back_left =
-    glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
-
-const auto intrinsics_back_right =
-    glm::mat3(1259.5137405846733, 0.0, 807.2529053838625, 0.0,
-              1259.5137405846733, 501.19579884916527, 0.0, 0.0, 1.0);
-const auto quaternion_back_right =
-    glm::quat(0.12280980120078765, -0.132400842670559, -0.7004305821388234,
-              0.690496031265798);
-const auto translation_vectors_back_right =
-    glm::vec3(1.0148780988, -0.480568219723, 1.56239545128);
-
-/* 内外参部分 */
-const int CAMERA_COUNTS = 6;
-std::array<glm::mat3, CAMERA_COUNTS> intrinsics_ = {
-    intrinsics_front,       intrinsics_rear,      intrinsics_front_left,
-    intrinsics_front_right, intrinsics_back_left, intrinsics_back_right};
-std::array<glm::quat, CAMERA_COUNTS> quaternions_{
-    quaternion_front,       quaternion_rear,      quaternion_front_left,
-    quaternion_front_right, quaternion_back_left, quaternion_back_right};
-std::array<glm::vec3, CAMERA_COUNTS> translation_vectors_ = {
-    translation_vectors_front,      translation_vectors_rear,
-    translation_vectors_front_left, translation_vectors_front_right,
-    translation_vectors_back_left,  translation_vectors_back_right};
-std::array<glm::vec3, CAMERA_COUNTS> t2_;
-std::array<glm::mat4, CAMERA_COUNTS> model_mat_;
-std::array<unsigned int, CAMERA_COUNTS> camera_textures;
-
-/** 生成需要的内外参，先用一个相机的来测试流程
- *  旋转向量，在 solve pnp 中是 from the model coordinate system to the
- * camera coordinate system. 在此，将四元数转换为旋转矩阵，看起来是 camera
- * to world， 结合旋转矩阵和平移矩阵得到外参矩阵,从世界坐标系到相机坐标系,
- * 负号是因为要反过来求变化方向
- */
-void GenerateModelMat(glm::quat &quaternion, glm::vec3 &translationVector,
-                      glm::mat4 &model_mat, glm::vec3 &t2_,
-                      const glm::vec3 &ExtrinsicOffset) {
-    glm::quat rotation_final;
-    {
-        float angle_x_degrees = 0.0f;
-        float angle_y_degrees = 0.0f;
-        float angle_z_degrees = 90.0f;
-
-        glm::quat rotation_x =
-            glm::angleAxis(glm::radians(angle_x_degrees), glm::vec3(1, 0, 0));
-        glm::quat rotation_y =
-            glm::angleAxis(glm::radians(angle_y_degrees), glm::vec3(0, 1, 0));
-        glm::quat rotation_z =
-            glm::angleAxis(glm::radians(angle_z_degrees), glm::vec3(0, 0, 1));
-
-        rotation_final = rotation_z * rotation_y * rotation_x;
-    }
-
-    quaternion = rotation_final * quaternion;
-    auto temp_trans = translationVector + ExtrinsicOffset;
-    glm::mat3 rotation_matrix_c2w = glm::mat3_cast(quaternion);
-    t2_ = rotation_final * temp_trans;
-
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            model_mat[i][j] = rotation_matrix_c2w[i][j];
-        }
-    }
-    model_mat[3][0] = t2_[0];
-    model_mat[3][1] = t2_[1];
-    model_mat[3][2] = t2_[2];
-    model_mat[3][3] = 1.0f;
-    model_mat = glm::inverse(model_mat);
-}
-
-void ConvertToMeters(std::vector<glm::vec3> &vertices) {
-    for (auto &vertex : vertices) {
-        vertex /= 1000.0f; // 将坐标转换为米
-    }
-}
 
 struct ModelPart {
     std::vector<glm::vec3> vertices;
     GLuint VBO = 0, VAO = 0, texture = 0;
 };
 
+/**
+ * @brief 生成障碍物的地图，
+ * 为了方便检测障碍物信息，要删除掉 drivable surface ，把立体信息去除
+ * glm::vec3 temp_positon(x * 1.0f, y * 1.0f, z * 1.0f);
+ * 
+ * @param path 
+ * @param obstacles 
+ * @param offset 
+ * @param scale 
+ */
+void GenerateCubePositionAndColor(const std::string &path,
+                                  std::vector<glm::vec3> &obstacles,
+                                  glm::vec3 offset, int scale) {
+    auto height = static_cast<int>(100 * scale);
+    auto width = static_cast<int>(100 * scale);
+    auto floor = static_cast<int>(2 * scale);
+    auto roof = static_cast<int>(8 * scale);
+
+    std::unordered_set<glm::vec3> temp_obstacles;
+
+    /* 加载 坐标,  */
+    for (int z = floor; z < roof; ++z) {
+        const std::string filename = path + std::to_string(z) + ".csv";
+        std::vector<std::vector<int>> data = read_csv(filename);
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                /* 删除掉高度 */
+                glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 1 * 1.0f);
+
+                /* 添加 voxels */
+                if ((data[y][x] != 11) && (data[y][x] != 17) && (data[y][x] > 0) &&
+                    (data[y][x] < 20)) {
+                    temp_obstacles.emplace(temp_positon);
+                }
+            }
+        }
+    }
+
+    // 去重完毕，返回 vector 
+    obstacles.insert(obstacles.end(), temp_obstacles.begin(), temp_obstacles.end());
+
+    /* cube z 轴旋转 -90 度 */
+    float rotationAngleDegrees = -90.0f;
+    float rotationAngleRadians = glm::radians(rotationAngleDegrees);
+    glm::mat4 rotationMatrix = glm::rotate(
+        glm::mat4(1.0f), rotationAngleRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    for (auto &obstacle : obstacles) {
+        obstacle = glm::vec3(rotationMatrix * glm::vec4(obstacle, 1.0f));
+    }
+
+    /* 对y轴反转 */
+    for (auto &obstacle : obstacles) {
+        obstacle.y = -obstacle.y;
+    }
+
+    /* 先放大缩小后，再cube 整体移动，以及转化到真实世界坐标 */
+    for (auto &obstacle : obstacles) {
+        obstacle *= VOXEL_SIZE;
+    }
+    for (auto &obstacle : obstacles) {
+        obstacle += offset;
+    }
+};
 
 void InitBuffers(ModelPart &part) {
     glGenVertexArrays(1, &part.VAO);
@@ -244,38 +177,15 @@ void InitBuffers(ModelPart &part) {
     glBindVertexArray(0);
 }
 
-std::vector<glm::vec3>
-MergeModels(const std::shared_ptr<BowlModel> &bowlModel) {
-    const auto &modelParts = bowlModel->getModel();
-    std::vector<glm::vec3> mergedVertices;
-
-    for (const auto &part : modelParts) {
-        mergedVertices.insert(mergedVertices.end(), part.begin(), part.end());
-    }
-
-    // 测试只取一部分
-
-    // mergedVertices = modelParts[0];
-
-    return mergedVertices;
-}
-
 /**
- * @brief 绘制 bowlmodel + camera projection，不用voxels, 我们先绘制碗的一部分
+ * @brief 此工程是为了绘制 OCC 生成的预测结果图像
  */
 int main() {
-    std::shared_ptr<BowlModel> mBowlModel = BowlModel::create();
-    mBowlModel->initModel();
+    /* 生成障碍物点云 */
+    GenerateCubePositionAndColor(VOXEL_COORDINATE_3X_PATH, obstacle_position,
+                                 VOXEL_OFFSET, SCALE_FACTOR);
 
-    // 为了方便直接选择一片vao vbo
-    std::vector<glm::vec3> vertices_merged = MergeModels(mBowlModel);
-    ConvertToMeters(vertices_merged);
-
-    for (auto i = 0; i < 6; i++) {
-        GenerateModelMat(quaternions_[i], translation_vectors_[i],
-                         model_mat_[i], t2_[i], ExtrinsicOffset);
-    }
-    camera.Position = t2_[0]; /* 相机放到前摄位置 */
+    camera.Position = glm::vec3(0, 0, 5); /* 相机放到前摄位置 */
 
     /* glfw & glad: initialize and configure */
     glfwInit();
@@ -318,10 +228,6 @@ int main() {
     glFrontFace(GL_CCW);
 
     if (DRAW_ONCE) {
-        // 线框模式进行debug GL_LINE， 填充  GL_FILL
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glLineWidth(30.0f);
-
         glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
         glPointSize(10.0f);
     }
@@ -332,21 +238,13 @@ int main() {
     glGenBuffers(1, &bowl_vbo_);
 
     glBindBuffer(GL_ARRAY_BUFFER, bowl_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, vertices_merged.size() * sizeof(glm::vec3),
-                 vertices_merged.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, obstacle_position.size() * sizeof(glm::vec3),
+                 obstacle_position.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(bowl_vao_);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
                           (void *)0);
     glEnableVertexAttribArray(0);
-
-    /* load textures */
-    camera_textures[0] = loadTexture(cam_front_path);
-    camera_textures[1] = loadTexture(cam_back_path);
-    camera_textures[2] = loadTexture(cam_front_left_path);
-    camera_textures[3] = loadTexture(cam_front_right_path);
-    camera_textures[4] = loadTexture(cam_back_left_path);
-    camera_textures[5] = loadTexture(cam_back_right_path);
 
     // shader configuration
 
@@ -370,16 +268,6 @@ int main() {
 
         bowl_program_.use();
 
-        /* 添加上相机内外参 0.791511 1.40713, 0.510167 0.546119 */
-        glm::vec2 focal_length = glm::vec2(intrinsics_[0][0][0] / IMAGE_WIDTH,
-                                           intrinsics_[0][1][1] / IMAGE_HEIGHT);
-        glm::vec2 principal_point =
-            glm::vec2(intrinsics_[0][0][2] / IMAGE_WIDTH,
-                      intrinsics_[0][1][2] / IMAGE_HEIGHT);
-
-        bowl_program_.setVec2("focal_lengths", focal_length);
-        bowl_program_.setVec2("camera_principal_point", principal_point);
-
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
             glm::radians(camera.Zoom),
@@ -395,15 +283,11 @@ int main() {
 
         if (DRAW_ONCE == 1) {
             for (auto i = 0; i < 1; i++) {
-                glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-                bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-                glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
+                glDrawArrays(GL_TRIANGLES, 0, obstacle_position.size());
             }
         } else {
             for (auto i = 0; i < CAMERA_COUNTS; i++) {
-                glBindTexture(GL_TEXTURE_2D, camera_textures[i]);
-                bowl_program_.setMat4("extrinsic_matrix", model_mat_[i]);
-                glDrawArrays(GL_TRIANGLES, 0, vertices_merged.size());
+                glDrawArrays(GL_TRIANGLES, 0, obstacle_position.size());
             }
         }
 
@@ -438,7 +322,7 @@ void processInput(GLFWwindow *window) {
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         /* 归位 */
-        camera.Position = t2_[0];
+        camera.Position = glm::vec3(0, 0, 5);
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);

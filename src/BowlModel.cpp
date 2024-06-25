@@ -86,8 +86,8 @@ void BowlModel::init3DModel(int index) {
     m_Model[index].clear();
     m_Model[index] = buildCylinderVertices(index);
 
-    // 调整顶点位置基于障碍物,当前不能用
-    AdjustVerticesBasedOnAngle(m_Model[index], obstacles_, MAX_RADIUS);
+    // 调整顶点位置基于障碍物, 此方法为测试使用，
+    //AdjustVerticesBasedOnAngle(m_Model[index], obstacles_, MAX_RADIUS);
 }
 
 int BowlModel::getPointSize(int index) {
