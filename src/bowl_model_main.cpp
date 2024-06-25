@@ -55,7 +55,7 @@ std::vector<std::vector<int>> read_csv(const std::string &filename) {
 
 /* 这个数据是模型参数 */
 std::vector<glm::vec3> obstacle_position_;
-const auto SCALE_FACTOR = 1;
+const auto SCALE_FACTOR = 3;
 const float VOXEL_SIZE = 1.024f / SCALE_FACTOR;
 const auto IMAGE_WIDTH = 1600.0;
 const auto IMAGE_HEIGHT = 900.0;
@@ -293,6 +293,7 @@ struct VoxelGrid {
     glm::vec3 offset;
     float resolution;
     int width, height, depth;
+    float scale = 1.0f;
 };
 
 VoxelGrid GenerateObstaclePosition(const std::string &path,
@@ -309,9 +310,17 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
     voxels.width = width;
     voxels.height = height;
     voxels.depth = roof - floor; // 暂时不需要这个参数
+    voxels.scale = scale;
+
+    const auto voxel_center = glm::vec2(width / 2, height / 2);
+    const int y_min = voxel_center.y - 10 * scale;
+    const int y_max = voxel_center.y + 10 * scale;
+    const int x_min = voxel_center.x - 10 * scale;
+    const int x_max = voxel_center.x + 10 * scale;
+
     /* 初始化 grid */
     voxels.grid = std::vector<std::vector<bool>>(
-        2* 10*scale, std::vector<bool>( 2*10*scale, false));
+        2 * 10 * scale, std::vector<bool>(2 * 10 * scale, false));
     voxels.offset = offset;
 
     std::unordered_set<glm::vec3> temp_obstacles;
@@ -321,8 +330,8 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
         const std::string filename = path + std::to_string(z) + ".csv";
         std::vector<std::vector<int>> data = read_csv(filename);
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
+        for (int y = y_min; y < y_max; ++y) {
+            for (int x = x_min; x < x_max; ++x) {
                 /* 删除掉高度 */
                 glm::vec3 temp_positon(x * 1.0f, y * 1.0f, 0 * 1.0f);
 
@@ -357,43 +366,39 @@ VoxelGrid GenerateObstaclePosition(const std::string &path,
     for (auto &obstacle : obstacles) {
         obstacle *= VOXEL_SIZE;
     }
-    // 因为array 只有正数，所以不能在这里用 offset 进行偏移
-    // for (auto &obstacle : obstacles) {
-    //     obstacle += offset;
-    // }
 
     /* obstacles in glm to 3d vectors*/
     for (const auto &obstacle : obstacles) {
-        const int x = static_cast<int>(obstacle.x );
+        const int x = static_cast<int>(obstacle.x);
         const int y = static_cast<int>(obstacle.y);
         if (x >= (voxels.width / 2 - 10 * scale) &&
             x < (voxels.width / 2 + 10 * scale) &&
             y >= (voxels.height / 2 - 10 * scale) &&
             y < (voxels.height / 2 + 10 * scale)) {
-            voxels.grid[y - (voxels.height / 2 - 10 * scale)][x - (voxels.width / 2 - 10 * scale)] = true;
+            int index_x = x - (voxels.width / 2 - 10 * scale);
+            int index_y = y - (voxels.height / 2 - 10 * scale);
+
+            voxels.grid[index_y][index_x] = true;
         }
     }
 
     return voxels;
 };
 
-float DetectObstacleDistance(const VoxelGrid &voxels, glm::vec2 &pos,
-                             glm::vec2 &direction) {
+float DetectObstacleDistance(const VoxelGrid &voxels, glm::vec2 &direction) {
     int steps = 0;
     float distance = std::numeric_limits<float>::infinity(); // 初始值设为无穷大
 
     while (true) {
         // 计算当前检测的位置
         glm::vec2 current_pos =
-            pos + direction * static_cast<float>(steps) * voxels.resolution;
+             10 * voxels.scale + direction * static_cast<float>(steps) * voxels.resolution;
 
         // 对应位置的 voxel 索引
-        int x = static_cast<int>(current_pos.x / voxels.resolution +
-                                 voxels.offset.x);
-        int y = static_cast<int>(current_pos.y / voxels.resolution +
-                                 voxels.offset.y);
+        int x = static_cast<int>(current_pos.x / voxels.resolution);
+        int y = static_cast<int>(current_pos.y / voxels.resolution);
 
-        if (x < 0 || x >= voxels.width || y < 0 || y >= voxels.height) {
+        if (x < 0 || x >= (10 * voxels.scale * 2) || y < 0 || y >= (10 * voxels.scale* 2)) {
             // 当前位置超出范围
             break;
         }
@@ -412,14 +417,13 @@ float DetectObstacleDistance(const VoxelGrid &voxels, glm::vec2 &pos,
 
 void AdjustVerticesBasedOnVoxels(std::vector<glm::vec3> &vertices,
                                  const VoxelGrid &voxels, float radius) {
-    auto center = glm::vec2(0.0f, 0.0f);
     for (auto &vertex : vertices) {
         float angle = atan2(vertex.y, vertex.x);
         float distanceFromCenter = glm::length(glm::vec2(vertex.x, vertex.y));
 
         glm::vec2 direction(cos(angle), sin(angle));
         float obstacleDistance =
-            DetectObstacleDistance(voxels, center, direction);
+            DetectObstacleDistance(voxels, direction);
 
         float scale = std::min(1.0f, obstacleDistance / radius);
         distanceFromCenter *= scale;
@@ -452,8 +456,17 @@ void SaveVerticesToCSV(const std::vector<glm::vec3> &vertices,
  */
 int main() {
     /* 生成障碍物点云 */
-    VoxelGrid voxels = GenerateObstaclePosition(
-        VOXEL_COORDINATE_PATH, obstacle_position_, VOXEL_OFFSET, SCALE_FACTOR);
+    VoxelGrid voxels;
+    if (SCALE_FACTOR == 1) {
+        voxels =
+            GenerateObstaclePosition(VOXEL_COORDINATE_PATH, obstacle_position_,
+                                     VOXEL_OFFSET, SCALE_FACTOR);
+    } else {
+        voxels = GenerateObstaclePosition(VOXEL_COORDINATE_3X_PATH,
+                                          obstacle_position_, VOXEL_OFFSET,
+                                          SCALE_FACTOR);
+    }
+
     Save2DArrayToFile(voxels.grid, "output.csv");
 
     /* 获取碗模型，为方便验证，先合并到一起再转化到 m，再进行调整 */
